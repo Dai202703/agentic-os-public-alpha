@@ -25,7 +25,13 @@ class ReleaseCheckTests(unittest.TestCase):
 
             self.assertTrue(report.ok)
             self.assertEqual(
-                ["unit_tests", "readiness_smoke", "distribution_check", "install_manager_dry_run"],
+                [
+                    "version_consistency",
+                    "unit_tests",
+                    "readiness_smoke",
+                    "distribution_check",
+                    "install_manager_dry_run",
+                ],
                 [step.id for step in report.steps],
             )
             command_text = "\n".join(" ".join(command) for command in calls)
@@ -49,6 +55,23 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertEqual(["distribution_check"], [step.id for step in failed])
             self.assertIn("1 findings", failed[0].message)
 
+    def test_release_check_fails_when_changelog_version_drifts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+            (repo_root / "CHANGELOG.md").write_text(
+                "# Changelog\n\n## v9.9.9-public-alpha\n\n- Drifted release.\n",
+                encoding="utf-8",
+            )
+
+            with patch("agentic_os.release_check.subprocess.run") as fake_run:
+                fake_run.return_value = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
+                report = release_check(repo_root)
+
+            self.assertFalse(report.ok)
+            failed = [step for step in report.steps if step.status == "FAIL"]
+            self.assertEqual(["version_consistency"], [step.id for step in failed])
+            self.assertIn("expected v0.1.3-public-alpha", failed[0].message)
+
     def test_release_check_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))
@@ -61,14 +84,33 @@ class ReleaseCheckTests(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(0, code)
             self.assertTrue(payload["ok"])
-            self.assertEqual(4, payload["passed_count"])
+            self.assertEqual(5, payload["passed_count"])
             self.assertEqual(0, payload["failed_count"])
             self.assertEqual(
-                ["unit_tests", "readiness_smoke", "distribution_check", "install_manager_dry_run"],
+                [
+                    "version_consistency",
+                    "unit_tests",
+                    "readiness_smoke",
+                    "distribution_check",
+                    "install_manager_dry_run",
+                ],
                 [step["id"] for step in payload["steps"]],
             )
 
     def create_release_repo(self, repo_root: Path) -> Path:
+        (repo_root / "src/agentic_os").mkdir(parents=True)
+        (repo_root / "src/agentic_os/version.py").write_text(
+            'VERSION = "0.1.3"\nRELEASE_CHANNEL = "public-alpha"\n',
+            encoding="utf-8",
+        )
+        (repo_root / "pyproject.toml").write_text(
+            '[project]\nname = "agentic-os"\nversion = "0.1.3"\n',
+            encoding="utf-8",
+        )
+        (repo_root / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## v0.1.3-public-alpha\n\n- Version traceability.\n",
+            encoding="utf-8",
+        )
         (repo_root / "bin").mkdir()
         launcher = repo_root / "bin/aos"
         launcher.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")

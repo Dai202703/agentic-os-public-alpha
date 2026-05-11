@@ -35,6 +35,7 @@ from .public_audit import public_audit, render_public_audit_json, render_public_
 from .public_export import public_export, render_public_export_json, render_public_export_summary
 from .scaffold import create_skill, create_workflow
 from .self_check import self_check, render_self_check_json, render_self_check_summary
+from .version import collect_version_info, render_version_json, render_version_text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -48,6 +49,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
+    version_parser = subparsers.add_parser("version", help="Show AOS version and runtime traceability.")
+    version_parser.add_argument("--json", action="store_true", dest="as_json")
     subparsers.add_parser("init", help="Create the global Agentic OS folder.")
     doctor_parser = subparsers.add_parser("doctor", help="Validate the Agentic OS folder.")
     doctor_parser.add_argument("--project-root")
@@ -177,6 +180,14 @@ def main(
         return int(error.code)
 
     try:
+        if args.command == "version":
+            info = collect_version_info(args.os_home)
+            if args.as_json:
+                stdout.write(render_version_json(info))
+            else:
+                stdout.write(render_version_text(info))
+            return 0
+
         if args.command == "init":
             root = init_os(args.os_home)
             stdout.write(f"Initialized Agentic OS at {root}\n")

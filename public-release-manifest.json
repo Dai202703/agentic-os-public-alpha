@@ -35,6 +35,7 @@
     "src/agentic_os/security.py",
     "src/agentic_os/self_check.py",
     "src/agentic_os/templates.py",
+    "src/agentic_os/version.py",
     "tests/test_bootstrap.py",
     "tests/test_cli_commands.py",
     "tests/test_cli_parser.py",

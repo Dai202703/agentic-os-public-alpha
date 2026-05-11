@@ -38,6 +38,8 @@ if [ "$SKIP_CHECKS" != "1" ]; then
   fi
 fi
 
+"$INSTALL_DIR/aos" version
+
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
   *)

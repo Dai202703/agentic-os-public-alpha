@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.3-public-alpha
+
+- Added `aos version` and install-time version traceability output.
+- Added release metadata consistency checks to `aos release-check`.
+
 ## v0.1.2-public-alpha
 
 - Updated GitHub Actions to Node 24 compatible `actions/checkout@v6` and `actions/setup-python@v6`.

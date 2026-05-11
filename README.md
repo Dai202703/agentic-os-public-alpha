@@ -35,7 +35,7 @@ cd agentic-os-public-alpha
 sh scripts/install.sh
 ```
 
-`scripts/install.sh` runs the test suite, runs the repo-contained readiness smoke, installs `bin/aos` as a symlink under `~/.local/bin`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into your live `~/.agentic-os` home.
+`scripts/install.sh` runs the test suite, runs the repo-contained readiness smoke, installs `bin/aos` as a symlink under `~/.local/bin`, prints `aos version`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into your live `~/.agentic-os` home.
 
 Use `AOS_INSTALL_DIR` when you want to install somewhere else:
 
@@ -48,6 +48,7 @@ For lower-level symlink-based installs, updates, and rollbacks:
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 scripts/manage_global_aos.py install --launcher bin/aos --install-dir ~/.local/bin
+aos version
 aos doctor --summary
 ```
 
@@ -63,6 +64,7 @@ Create a private OS home:
 
 ```bash
 aos init
+aos version
 aos doctor --summary
 ```
 
@@ -108,6 +110,7 @@ aos public-export --repo-root . --output /tmp/agentic-os-public --json
 ```
 
 The gates check for generated provider outputs, live OS home folders, sensitive filenames, API key patterns, private memory references, private local paths, and install rollback failures.
+`release-check` also verifies that code version metadata, `pyproject.toml`, and the top `CHANGELOG.md` release heading agree.
 
 ## Development
 

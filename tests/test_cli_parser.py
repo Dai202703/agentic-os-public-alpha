@@ -15,6 +15,7 @@ class CliParserTests(unittest.TestCase):
         self.assertIn("release-check", help_text)
         self.assertIn("public-audit", help_text)
         self.assertIn("public-export", help_text)
+        self.assertIn("version", help_text)
 
     def test_os_home_global_option_is_available(self):
         parser = build_parser()

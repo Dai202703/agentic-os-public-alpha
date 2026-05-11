@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
 from typing import Sequence
 
 from .distribution import distribution_check
+from .version import get_release_tag
 
 
 @dataclass(frozen=True)
@@ -42,6 +44,7 @@ def release_check(repo_root: str | Path = ".", launcher: str | Path | None = Non
     root = Path(repo_root).expanduser().resolve()
     launcher_path = Path(launcher).expanduser().resolve() if launcher else root / "bin/aos"
     steps = [
+        _version_consistency_step(root),
         _run_command_step(
             "unit_tests",
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
@@ -112,6 +115,73 @@ def _distribution_step(root: Path) -> ReleaseCheckStep:
         message=f"Distribution privacy gate failed with {len(report.issues)} findings.",
         path=str(root),
     )
+
+
+def _version_consistency_step(root: Path) -> ReleaseCheckStep:
+    try:
+        code_version, release_channel = _read_version_metadata(root)
+        package_version = _read_pyproject_version(root)
+        changelog_tag = _read_top_changelog_tag(root)
+    except (OSError, ValueError) as error:
+        return ReleaseCheckStep(
+            id="version_consistency",
+            status="FAIL",
+            message=f"Version metadata check failed: {error}",
+            path=str(root),
+        )
+
+    expected_tag = get_release_tag(code_version, release_channel)
+    findings: list[str] = []
+    if package_version != code_version:
+        findings.append(f"pyproject version is {package_version}; expected {code_version}")
+    if changelog_tag != expected_tag:
+        findings.append(f"CHANGELOG top release is {changelog_tag}; expected {expected_tag}")
+
+    if findings:
+        return ReleaseCheckStep(
+            id="version_consistency",
+            status="FAIL",
+            message="Version metadata mismatch: " + "; ".join(findings) + ".",
+            path=str(root),
+        )
+
+    return ReleaseCheckStep(
+        id="version_consistency",
+        status="PASS",
+        message=f"Version metadata is consistent: {expected_tag}.",
+        path=str(root),
+    )
+
+
+def _read_version_metadata(root: Path) -> tuple[str, str]:
+    content = (root / "src/agentic_os/version.py").read_text(encoding="utf-8")
+    version = _read_python_string_assignment(content, "VERSION")
+    release_channel = _read_python_string_assignment(content, "RELEASE_CHANNEL")
+    return version, release_channel
+
+
+def _read_python_string_assignment(content: str, name: str) -> str:
+    pattern = rf"(?m)^{re.escape(name)}\s*=\s*[\"']([^\"']+)[\"']\s*$"
+    match = re.search(pattern, content)
+    if not match:
+        raise ValueError(f"Missing {name} in src/agentic_os/version.py")
+    return match.group(1)
+
+
+def _read_pyproject_version(root: Path) -> str:
+    content = (root / "pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'(?m)^version\s*=\s*"([^"]+)"\s*$', content)
+    if not match:
+        raise ValueError("Missing project version in pyproject.toml")
+    return match.group(1)
+
+
+def _read_top_changelog_tag(root: Path) -> str:
+    content = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    match = re.search(r"(?m)^##\s+(v[^\s]+)\s*$", content)
+    if not match:
+        raise ValueError("Missing top release heading in CHANGELOG.md")
+    return match.group(1)
 
 
 def _install_manager_dry_run_step(root: Path, launcher: Path) -> ReleaseCheckStep:

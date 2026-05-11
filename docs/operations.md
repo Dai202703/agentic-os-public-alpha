@@ -20,6 +20,7 @@ Inspect the current global command target:
 ```bash
 python3 scripts/manage_global_aos.py status --install-dir ~/.local/bin
 command -v aos
+aos version
 aos doctor --summary
 ```
 
@@ -57,6 +58,7 @@ For lower-level installs, install the repo-contained launcher as `~/.local/bin/a
 
 ```bash
 python3 scripts/manage_global_aos.py install --launcher bin/aos --install-dir ~/.local/bin
+aos version
 aos doctor --summary
 ```
 
@@ -70,6 +72,7 @@ After pulling or cloning a newer standalone repository, update the global comman
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 scripts/readiness_smoke.py --launcher bin/aos --json
 python3 scripts/manage_global_aos.py update --launcher bin/aos --install-dir ~/.local/bin
+aos version
 aos doctor --summary
 ```
 
@@ -81,6 +84,7 @@ Restore the last command that was replaced by `install` or `update`:
 
 ```bash
 python3 scripts/manage_global_aos.py rollback --install-dir ~/.local/bin
+aos version
 aos doctor --summary
 ```
 
@@ -92,6 +96,7 @@ After install, update, or rollback, verify at least one linked project:
 
 ```bash
 aos doctor --project-root . --summary
+aos version
 aos readiness --project-root . --json
 aos onboarding-check --project-root . --json
 ```
@@ -104,4 +109,4 @@ aos onboarding-check --project-root . --json
 - Do not copy personal memory, identity files, API keys, or machine-specific paths into the standalone repository.
 - Do not replace a directory named `aos`; the manager refuses to overwrite directories.
 - Keep rollback state in the install directory unless testing with a temporary `--state-file`.
-- Run `aos doctor --summary` and project readiness after every install, update, or rollback.
+- Run `aos version`, `aos doctor --summary`, and project readiness after every install, update, or rollback.

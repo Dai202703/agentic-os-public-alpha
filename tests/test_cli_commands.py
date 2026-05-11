@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -30,6 +31,48 @@ class CliCommandTests(unittest.TestCase):
 
             self.assertEqual(code, 1)
             self.assertIn("Error:", stderr.getvalue())
+
+    def test_version_command_reports_traceability_summary(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stdout = io.StringIO()
+
+            code = main(["--os-home", temp_dir, "version"], stdout=stdout)
+
+            output = stdout.getvalue()
+            self.assertEqual(0, code)
+            self.assertIn("AOS version 0.1.3", output)
+            self.assertIn("Release channel: public-alpha", output)
+            self.assertIn("Release tag: v0.1.3-public-alpha", output)
+            self.assertIn("Python executable:", output)
+            self.assertIn("Command path:", output)
+            self.assertIn(f"OS home: {Path(temp_dir).resolve()}", output)
+
+    def test_version_command_outputs_json(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            stdout = io.StringIO()
+
+            code = main(["--os-home", temp_dir, "version", "--json"], stdout=stdout)
+
+            self.assertEqual(0, code)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual("0.1.3", payload["version"])
+            self.assertEqual("public-alpha", payload["release_channel"])
+            self.assertEqual("v0.1.3-public-alpha", payload["release_tag"])
+            self.assertEqual(str(Path(temp_dir).resolve()), payload["os_home"])
+            self.assertIn("python_version", payload)
+            self.assertIn("python_executable", payload)
+            self.assertIn("command_path", payload)
+
+    def test_version_command_prefers_launcher_command_path_env(self):
+        with tempfile.NamedTemporaryFile() as launcher_file:
+            stdout = io.StringIO()
+
+            with patch.dict(os.environ, {"AOS_COMMAND_PATH": launcher_file.name}):
+                code = main(["version", "--json"], stdout=stdout)
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(0, code)
+            self.assertEqual(str(Path(launcher_file.name).resolve()), payload["command_path"])
 
     def test_doctor_command_passes_after_init(self):
         with tempfile.TemporaryDirectory() as temp_dir:

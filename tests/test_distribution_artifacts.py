@@ -33,6 +33,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
         self.assertIn("scripts/install.sh", content)
         self.assertIn("AOS_INSTALL_DIR", content)
+        self.assertIn("aos version", content)
         self.assertIn("python3 -m unittest discover -s tests -v", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
 
@@ -72,5 +73,13 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("scripts/manage_global_aos.py install", content)
         self.assertIn("scripts/manage_global_aos.py update", content)
         self.assertIn("scripts/manage_global_aos.py rollback", content)
+        self.assertIn("aos version", content)
         self.assertIn("aos doctor --summary", content)
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)
+
+    def test_public_release_doc_documents_version_traceability(self):
+        content = (self.repo_root / "docs/public-release.md").read_text(encoding="utf-8")
+
+        self.assertIn("aos version", content)
+        self.assertIn("v0.1.3-public-alpha", content)
+        self.assertIn("version_consistency", content)

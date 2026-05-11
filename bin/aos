@@ -14,6 +14,8 @@ done
 script_dir=$(CDPATH= cd -- "$(dirname -- "$script_path")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 
+export AOS_COMMAND_PATH="$script_path"
+
 if [ "${PYTHONPATH:-}" ]; then
   PYTHONPATH="$repo_root/src:$PYTHONPATH"
 else
