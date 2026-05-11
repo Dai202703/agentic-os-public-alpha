@@ -17,6 +17,15 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("python3 -m agentic_os release-check --repo-root . --json", content)
         self.assertIn("python3 -m agentic_os public-audit --repo-root . --json", content)
 
+    def test_github_actions_use_node24_compatible_actions(self):
+        workflow = self.repo_root / ".github/workflows/test.yml"
+
+        content = workflow.read_text(encoding="utf-8")
+        self.assertIn("uses: actions/checkout@v6", content)
+        self.assertIn("uses: actions/setup-python@v6", content)
+        self.assertNotIn("uses: actions/checkout@v4", content)
+        self.assertNotIn("uses: actions/setup-python@v5", content)
+
     def test_readme_documents_standalone_install_and_verification(self):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
 

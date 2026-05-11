@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.2-public-alpha
+
+- Updated GitHub Actions to Node 24 compatible `actions/checkout@v6` and `actions/setup-python@v6`.
+
 ## v0.1.1-public-alpha
 
 - Added `scripts/install.sh` for one-command verified local install with `AOS_INSTALL_DIR` support.
