@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+set -eu
+
+script_path=$0
+while [ -L "$script_path" ]; do
+  script_dir=$(CDPATH= cd -- "$(dirname -- "$script_path")" && pwd)
+  link_target=$(readlink "$script_path")
+  case "$link_target" in
+    /*) script_path=$link_target ;;
+    *) script_path=$script_dir/$link_target ;;
+  esac
+done
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$script_path")" && pwd)
+repo_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
+
+if [ "${PYTHONPATH:-}" ]; then
+  PYTHONPATH="$repo_root/src:$PYTHONPATH"
+else
+  PYTHONPATH="$repo_root/src"
+fi
+export PYTHONPATH
+
+exec python3 -m agentic_os "$@"
