@@ -40,9 +40,9 @@ class CliCommandTests(unittest.TestCase):
 
             output = stdout.getvalue()
             self.assertEqual(0, code)
-            self.assertIn("AOS version 0.1.3", output)
+            self.assertIn("AOS version 0.1.4", output)
             self.assertIn("Release channel: public-alpha", output)
-            self.assertIn("Release tag: v0.1.3-public-alpha", output)
+            self.assertIn("Release tag: v0.1.4-public-alpha", output)
             self.assertIn("Python executable:", output)
             self.assertIn("Command path:", output)
             self.assertIn(f"OS home: {Path(temp_dir).resolve()}", output)
@@ -55,9 +55,9 @@ class CliCommandTests(unittest.TestCase):
 
             self.assertEqual(0, code)
             payload = json.loads(stdout.getvalue())
-            self.assertEqual("0.1.3", payload["version"])
+            self.assertEqual("0.1.4", payload["version"])
             self.assertEqual("public-alpha", payload["release_channel"])
-            self.assertEqual("v0.1.3-public-alpha", payload["release_tag"])
+            self.assertEqual("v0.1.4-public-alpha", payload["release_tag"])
             self.assertEqual(str(Path(temp_dir).resolve()), payload["os_home"])
             self.assertIn("python_version", payload)
             self.assertIn("python_executable", payload)

@@ -1,5 +1,6 @@
 import io
 import json
+from types import SimpleNamespace
 import subprocess
 import tempfile
 import unittest
@@ -41,6 +42,39 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertIn("manage_global_aos.py update", command_text)
             self.assertIn("manage_global_aos.py rollback", command_text)
 
+    def test_release_check_can_include_upgrade_smoke_when_requested(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+
+            def fake_run(command, **kwargs):
+                return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+            fake_report = SimpleNamespace(
+                ok=True,
+                failed=[],
+                previous_version={"release_tag": "v0.1.3-public-alpha"},
+                current_version={"release_tag": "v0.1.4-public-alpha"},
+            )
+
+            with patch("agentic_os.release_check.subprocess.run", side_effect=fake_run):
+                with patch("agentic_os.release_check.release_upgrade_smoke", return_value=fake_report) as fake_smoke:
+                    report = release_check(
+                        repo_root,
+                        upgrade_smoke=True,
+                        from_ref="v0.1.3-public-alpha",
+                        to_ref="HEAD",
+                    )
+
+            self.assertTrue(report.ok)
+            self.assertEqual("release_upgrade_smoke", report.steps[-1].id)
+            self.assertIn("v0.1.3-public-alpha", report.steps[-1].message)
+            self.assertIn("v0.1.4-public-alpha", report.steps[-1].message)
+            fake_smoke.assert_called_once_with(
+                repo_root.resolve(),
+                from_ref="v0.1.3-public-alpha",
+                to_ref="HEAD",
+            )
+
     def test_release_check_fails_when_distribution_check_finds_private_output(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))
@@ -70,7 +104,7 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertFalse(report.ok)
             failed = [step for step in report.steps if step.status == "FAIL"]
             self.assertEqual(["version_consistency"], [step.id for step in failed])
-            self.assertIn("expected v0.1.3-public-alpha", failed[0].message)
+            self.assertIn("expected v0.1.4-public-alpha", failed[0].message)
 
     def test_release_check_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -100,15 +134,15 @@ class ReleaseCheckTests(unittest.TestCase):
     def create_release_repo(self, repo_root: Path) -> Path:
         (repo_root / "src/agentic_os").mkdir(parents=True)
         (repo_root / "src/agentic_os/version.py").write_text(
-            'VERSION = "0.1.3"\nRELEASE_CHANNEL = "public-alpha"\n',
+            'VERSION = "0.1.4"\nRELEASE_CHANNEL = "public-alpha"\n',
             encoding="utf-8",
         )
         (repo_root / "pyproject.toml").write_text(
-            '[project]\nname = "agentic-os"\nversion = "0.1.3"\n',
+            '[project]\nname = "agentic-os"\nversion = "0.1.4"\n',
             encoding="utf-8",
         )
         (repo_root / "CHANGELOG.md").write_text(
-            "# Changelog\n\n## v0.1.3-public-alpha\n\n- Version traceability.\n",
+            "# Changelog\n\n## v0.1.4-public-alpha\n\n- Release upgrade smoke.\n",
             encoding="utf-8",
         )
         (repo_root / "bin").mkdir()

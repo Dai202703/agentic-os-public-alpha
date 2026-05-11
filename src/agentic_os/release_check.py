@@ -8,6 +8,7 @@ import tempfile
 from typing import Sequence
 
 from .distribution import distribution_check
+from .release_upgrade_smoke import release_upgrade_smoke
 from .version import get_release_tag
 
 
@@ -40,7 +41,14 @@ class ReleaseCheckReport:
         return [step for step in self.steps if step.status == "FAIL"]
 
 
-def release_check(repo_root: str | Path = ".", launcher: str | Path | None = None) -> ReleaseCheckReport:
+def release_check(
+    repo_root: str | Path = ".",
+    launcher: str | Path | None = None,
+    *,
+    upgrade_smoke: bool = False,
+    from_ref: str | None = None,
+    to_ref: str = "HEAD",
+) -> ReleaseCheckReport:
     root = Path(repo_root).expanduser().resolve()
     launcher_path = Path(launcher).expanduser().resolve() if launcher else root / "bin/aos"
     steps = [
@@ -66,6 +74,8 @@ def release_check(repo_root: str | Path = ".", launcher: str | Path | None = Non
         _distribution_step(root),
         _install_manager_dry_run_step(root, launcher_path),
     ]
+    if upgrade_smoke:
+        steps.append(_release_upgrade_smoke_step(root, from_ref, to_ref))
     return ReleaseCheckReport(root, steps)
 
 
@@ -244,6 +254,46 @@ def _install_manager_dry_run_step(root: Path, launcher: Path) -> ReleaseCheckSte
         id="install_manager_dry_run",
         status="PASS",
         message="Install manager dry-run passed: status, install, update, rollback.",
+        path=str(root),
+    )
+
+
+def _release_upgrade_smoke_step(root: Path, from_ref: str | None, to_ref: str) -> ReleaseCheckStep:
+    if not from_ref:
+        return ReleaseCheckStep(
+            id="release_upgrade_smoke",
+            status="FAIL",
+            message="release-check --upgrade-smoke requires --from-ref.",
+            path=str(root),
+        )
+    try:
+        report = release_upgrade_smoke(root, from_ref=from_ref, to_ref=to_ref)
+    except (OSError, ValueError) as error:
+        return ReleaseCheckStep(
+            id="release_upgrade_smoke",
+            status="FAIL",
+            message=f"Release upgrade smoke could not run: {error}",
+            path=str(root),
+        )
+
+    if report.ok:
+        return ReleaseCheckStep(
+            id="release_upgrade_smoke",
+            status="PASS",
+            message=(
+                "Release upgrade smoke passed: "
+                f"{report.previous_version.get('release_tag', from_ref)} -> "
+                f"{report.current_version.get('release_tag', to_ref)}."
+            ),
+            path=str(root),
+        )
+
+    first_failure = report.failed[0] if report.failed else None
+    detail = first_failure.message if first_failure else "unknown failure"
+    return ReleaseCheckStep(
+        id="release_upgrade_smoke",
+        status="FAIL",
+        message=f"Release upgrade smoke failed: {detail}",
         path=str(root),
     )
 

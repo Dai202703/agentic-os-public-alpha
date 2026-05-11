@@ -15,6 +15,7 @@
     "scripts/install.sh",
     "scripts/manage_global_aos.py",
     "scripts/readiness_smoke.py",
+    "scripts/release_upgrade_smoke.py",
     "src/agentic_os/__init__.py",
     "src/agentic_os/__main__.py",
     "src/agentic_os/bootstrap.py",
@@ -31,6 +32,7 @@
     "src/agentic_os/public_export.py",
     "src/agentic_os/readiness.py",
     "src/agentic_os/release_check.py",
+    "src/agentic_os/release_upgrade_smoke.py",
     "src/agentic_os/scaffold.py",
     "src/agentic_os/security.py",
     "src/agentic_os/self_check.py",
@@ -51,6 +53,7 @@
     "tests/test_project.py",
     "tests/test_public_release.py",
     "tests/test_release_check.py",
+    "tests/test_release_upgrade_smoke.py",
     "tests/test_reliability.py",
     "tests/test_scaffold.py",
     "tests/test_security.py"

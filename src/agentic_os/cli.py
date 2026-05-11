@@ -31,6 +31,11 @@ from .release_check import (
     render_release_check_json,
     render_release_check_summary,
 )
+from .release_upgrade_smoke import (
+    release_upgrade_smoke,
+    render_release_upgrade_smoke_json,
+    render_release_upgrade_smoke_summary,
+)
 from .public_audit import public_audit, render_public_audit_json, render_public_audit_summary
 from .public_export import public_export, render_public_export_json, render_public_export_summary
 from .scaffold import create_skill, create_workflow
@@ -87,7 +92,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     release_check_parser.add_argument("--repo-root", default=".")
     release_check_parser.add_argument("--launcher")
+    release_check_parser.add_argument("--upgrade-smoke", action="store_true")
+    release_check_parser.add_argument("--from-ref")
+    release_check_parser.add_argument("--to-ref", default="HEAD")
     release_check_parser.add_argument("--json", action="store_true", dest="as_json")
+    release_upgrade_smoke_parser = subparsers.add_parser(
+        "release-upgrade-smoke",
+        help="Verify install, update, and rollback between two release refs.",
+    )
+    release_upgrade_smoke_parser.add_argument("--repo-root", default=".")
+    release_upgrade_smoke_parser.add_argument("--from-ref", required=True)
+    release_upgrade_smoke_parser.add_argument("--to-ref", default="HEAD")
+    release_upgrade_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
     public_audit_parser = subparsers.add_parser(
         "public-audit",
         help="Scan the current tree and git history for public-release privacy risks.",
@@ -239,11 +255,25 @@ def main(
             return 0 if report.ok else 1
 
         if args.command == "release-check":
-            report = release_check(args.repo_root, args.launcher)
+            report = release_check(
+                args.repo_root,
+                args.launcher,
+                upgrade_smoke=args.upgrade_smoke,
+                from_ref=args.from_ref,
+                to_ref=args.to_ref,
+            )
             if args.as_json:
                 stdout.write(render_release_check_json(report))
             else:
                 stdout.write(render_release_check_summary(report))
+            return 0 if report.ok else 1
+
+        if args.command == "release-upgrade-smoke":
+            report = release_upgrade_smoke(args.repo_root, args.from_ref, args.to_ref)
+            if args.as_json:
+                stdout.write(render_release_upgrade_smoke_json(report))
+            else:
+                stdout.write(render_release_upgrade_smoke_summary(report))
             return 0 if report.ok else 1
 
         if args.command == "public-audit":

@@ -90,6 +90,22 @@ aos doctor --summary
 
 If there was no previous command, rollback removes the symlink that was created by the last install.
 
+## Release Upgrade Smoke
+
+Before publishing a public alpha after the first release, verify update and rollback across release refs:
+
+```bash
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.3-public-alpha --to-ref HEAD --json
+```
+
+For a stricter release gate, run the integrated opt-in check:
+
+```bash
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.3-public-alpha --to-ref HEAD --json
+```
+
+The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
+
 ## Project Verification
 
 After install, update, or rollback, verify at least one linked project:

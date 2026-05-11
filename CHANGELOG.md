@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4-public-alpha
+
+- Added `aos release-upgrade-smoke` to verify install, update, rollback, and version traceability across release refs.
+- Added optional `aos release-check --upgrade-smoke` gating for release managers.
+
 ## v0.1.3-public-alpha
 
 - Added `aos version` and install-time version traceability output.
