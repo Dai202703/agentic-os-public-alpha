@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.1-public-alpha
+
+- Added `scripts/install.sh` for one-command verified local install with `AOS_INSTALL_DIR` support.
+
 ## v0.1.0-public-alpha
 
 - Added public release policy, security policy, contribution guide, and license.

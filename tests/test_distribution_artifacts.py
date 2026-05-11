@@ -21,7 +21,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         content = (self.repo_root / "README.md").read_text(encoding="utf-8")
 
         self.assertIn("## Standalone Install", content)
-        self.assertIn("git clone https://github.com/Dai202703/agentic-os.git", content)
+        self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
+        self.assertIn("scripts/install.sh", content)
+        self.assertIn("AOS_INSTALL_DIR", content)
         self.assertIn("python3 -m unittest discover -s tests -v", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
 
@@ -54,6 +56,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertTrue(operations.is_file())
         content = operations.read_text(encoding="utf-8")
         self.assertIn("## Install", content)
+        self.assertIn("scripts/install.sh", content)
+        self.assertIn("AOS_INSTALL_SKIP_CHECKS", content)
         self.assertIn("## Update", content)
         self.assertIn("## Rollback", content)
         self.assertIn("scripts/manage_global_aos.py install", content)

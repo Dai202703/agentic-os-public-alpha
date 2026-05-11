@@ -27,18 +27,26 @@ Supported provider outputs:
 
 ## Standalone Install
 
-Clone the repository and run the test suite before installing:
+Clone the public alpha repository and run the verified installer:
 
 ```bash
-git clone https://github.com/Dai202703/agentic-os.git
-cd agentic-os
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-python3 -m pip install -e .
+git clone https://github.com/Dai202703/agentic-os-public-alpha.git
+cd agentic-os-public-alpha
+sh scripts/install.sh
 ```
 
-For symlink-based installs, updates, and rollbacks:
+`scripts/install.sh` runs the test suite, runs the repo-contained readiness smoke, installs `bin/aos` as a symlink under `~/.local/bin`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into your live `~/.agentic-os` home.
+
+Use `AOS_INSTALL_DIR` when you want to install somewhere else:
 
 ```bash
+AOS_INSTALL_DIR=/tmp/aos-bin sh scripts/install.sh
+```
+
+For lower-level symlink-based installs, updates, and rollbacks:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
 python3 scripts/manage_global_aos.py install --launcher bin/aos --install-dir ~/.local/bin
 aos doctor --summary
 ```

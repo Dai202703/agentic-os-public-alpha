@@ -5,8 +5,8 @@ Agentic OS is a public alpha. Contributions should keep the project local-first,
 ## Development Setup
 
 ```bash
-git clone https://github.com/Dai202703/agentic-os.git
-cd agentic-os
+git clone https://github.com/Dai202703/agentic-os-public-alpha.git
+cd agentic-os-public-alpha
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 scripts/readiness_smoke.py --launcher bin/aos --json
 ```

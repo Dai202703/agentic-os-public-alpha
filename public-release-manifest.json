@@ -12,6 +12,7 @@
     "docs/operations.md",
     "docs/public-release.md",
     "pyproject.toml",
+    "scripts/install.sh",
     "scripts/manage_global_aos.py",
     "scripts/readiness_smoke.py",
     "src/agentic_os/__init__.py",

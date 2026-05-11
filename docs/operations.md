@@ -27,7 +27,33 @@ If `aos doctor --summary` reports sandbox-only permission issues inside a restri
 
 ## Install
 
-Install the repo-contained launcher as `~/.local/bin/aos`:
+For normal local usage, run the install wrapper:
+
+```bash
+sh scripts/install.sh
+```
+
+The wrapper runs the unit suite, runs the repo-contained smoke check, links `bin/aos` into `~/.local/bin`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into the live `~/.agentic-os` home.
+
+Set `AOS_INSTALL_DIR` to install the command somewhere else:
+
+```bash
+AOS_INSTALL_DIR=/tmp/aos-bin sh scripts/install.sh
+```
+
+Set `AOS_INSTALL_SKIP_CHECKS=1` only in controlled tests or after a separate release gate has already passed:
+
+```bash
+AOS_INSTALL_DIR=/tmp/aos-bin AOS_INSTALL_SKIP_CHECKS=1 sh scripts/install.sh
+```
+
+Set `AOS_INSTALL_CHECK_HOME` when you want to inspect the temporary verification OS home yourself:
+
+```bash
+AOS_INSTALL_CHECK_HOME=/tmp/aos-install-check sh scripts/install.sh
+```
+
+For lower-level installs, install the repo-contained launcher as `~/.local/bin/aos`:
 
 ```bash
 python3 scripts/manage_global_aos.py install --launcher bin/aos --install-dir ~/.local/bin

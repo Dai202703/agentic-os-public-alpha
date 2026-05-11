@@ -21,7 +21,7 @@
 ## Public Alpha Onboarding Flow
 
 1. Clone the Agentic OS repository.
-2. Run tests.
+2. Run `sh scripts/install.sh`.
 3. Initialize a local OS home with `aos init`.
 4. Complete personal identity files.
 5. Link one project.
@@ -63,6 +63,7 @@ This is the minimum gate before handing the standalone repository to another mac
 - Fresh clone test suite passes with `PYTHONPATH=src python3 -m unittest discover -s tests -v`.
 - GitHub Actions test workflow passes on the standalone repository.
 - Repo-contained smoke passes with `scripts/readiness_smoke.py --launcher bin/aos --json`.
+- Install wrapper passes with `sh scripts/install.sh` or with `AOS_INSTALL_DIR` pointed at a temporary bin directory.
 - Standalone package privacy gate passes with `aos distribution-check --repo-root . --json`.
 - Public release audit passes with `aos public-audit --repo-root . --json`.
 - Integrated pre-release gate passes with `aos release-check --repo-root . --json`.

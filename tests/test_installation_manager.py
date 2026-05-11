@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,7 @@ class InstallationManagerTests(unittest.TestCase):
     def setUp(self):
         self.repo_root = Path(__file__).resolve().parents[1]
         self.manager = self.repo_root / "scripts/manage_global_aos.py"
+        self.install_script = self.repo_root / "scripts/install.sh"
         self.launcher = self.repo_root / "bin/aos"
 
     def run_manager(self, *args: str) -> subprocess.CompletedProcess[str]:
@@ -96,3 +98,25 @@ class InstallationManagerTests(unittest.TestCase):
             self.assertEqual(0, rollback.returncode, rollback.stderr)
             self.assertTrue(active.is_symlink())
             self.assertEqual(previous_launcher.resolve(), active.resolve())
+
+    def test_install_script_installs_launcher_to_env_install_dir(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            install_dir = Path(temp_dir) / "bin"
+            env = os.environ.copy()
+            env["AOS_INSTALL_DIR"] = str(install_dir)
+            env["AOS_INSTALL_SKIP_CHECKS"] = "1"
+
+            install = subprocess.run(
+                ["sh", str(self.install_script)],
+                check=False,
+                cwd=self.repo_root,
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(0, install.returncode, install.stderr)
+            active = install_dir / "aos"
+            self.assertTrue(active.is_symlink())
+            self.assertEqual(self.launcher.resolve(), active.resolve())
+            self.assertIn("aos install complete", install.stdout)
