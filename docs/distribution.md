@@ -51,7 +51,7 @@ Public package publication requires the additional public release policy in `doc
 - `aos release-check --repo-root . --json` returns `"ok": true`.
 - `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior for a public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.5-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.6-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
 - The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.

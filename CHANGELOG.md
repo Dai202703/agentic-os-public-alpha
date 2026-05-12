@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.7-public-alpha
+
+- Added actionable `next_action` diagnostics to `aos fresh-user-smoke` failure reports.
+- Preserved fresh-user smoke failure command, path, stdout tail, stderr tail, and next action inside `aos release-check --fresh-user-smoke`.
+
 ## v0.1.6-public-alpha
 
 - Added `aos fresh-user-smoke` to verify isolated install, OS home initialization, project link, provider compilation, and onboarding.

@@ -102,13 +102,13 @@ If there was no previous command, rollback removes the symlink that was created 
 Before publishing a public alpha after the first release, verify update and rollback across release refs:
 
 ```bash
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.6-public-alpha --to-ref HEAD --json
 ```
 
 For a stricter release gate, run the integrated opt-in check:
 
 ```bash
-aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.5-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.6-public-alpha --to-ref HEAD --json
 ```
 
 The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
@@ -133,6 +133,8 @@ aos release-check --repo-root . --fresh-user-smoke --json
 ```
 
 The smoke creates a temporary install directory, temporary OS home, and temporary demo project. It runs `scripts/install.sh`, initializes the temporary OS home, links the demo project with Codex, Claude Code, Gemini, and ChatGPT, compiles all provider outputs, and runs `aos onboarding-check`. It does not touch the live global command or live `~/.agentic-os` home.
+
+When the smoke fails, JSON output includes the failed step id, command, path, stdout tail, stderr tail, and `next_action`. Summary output includes the first failed step and the recommended next command to run.
 
 ## Project Verification
 

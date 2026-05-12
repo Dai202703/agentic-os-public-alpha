@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from agentic_os.cli import main
-from agentic_os.fresh_user_smoke import fresh_user_smoke
+from agentic_os.fresh_user_smoke import fresh_user_smoke, render_fresh_user_smoke_summary
 
 
 class FreshUserSmokeTests(unittest.TestCase):
@@ -54,11 +54,53 @@ class FreshUserSmokeTests(unittest.TestCase):
         self.assertEqual(0, payload["failed_count"])
         self.assertEqual("fresh_user_onboarding", payload["steps"][-1]["id"])
 
-    def create_fake_repo(self, repo_root: Path) -> Path:
+    def test_failed_install_reports_output_tails_and_next_action(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_fake_repo(Path(temp_dir))
+            installer = repo_root / "scripts/install.sh"
+            installer.write_text(
+                textwrap.dedent(
+                    """\
+                    #!/usr/bin/env sh
+                    echo preparing install
+                    echo python missing >&2
+                    exit 7
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            report = fresh_user_smoke(repo_root)
+
+        self.assertFalse(report.ok)
+        step = report.failed[0]
+        self.assertEqual("install_wrapper", step.id)
+        self.assertIn("exit code 7", step.message)
+        self.assertIn("preparing install", step.stdout_tail)
+        self.assertIn("python missing", step.stderr_tail)
+        self.assertIn("Run `sh scripts/install.sh`", step.next_action)
+        summary = render_fresh_user_smoke_summary(report)
+        self.assertIn("first_failure=install_wrapper", summary)
+        self.assertIn("next_action=Run `sh scripts/install.sh`", summary)
+
+    def test_failed_onboarding_reports_failed_substep_ids_and_next_action(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_fake_repo(Path(temp_dir), onboarding_ok=False)
+
+            report = fresh_user_smoke(repo_root)
+
+        self.assertFalse(report.ok)
+        step = report.failed[0]
+        self.assertEqual("fresh_user_onboarding", step.id)
+        self.assertIn("self_check", step.message)
+        self.assertIn("private_scan", step.message)
+        self.assertIn("Run the reported `aos onboarding-check` command", step.next_action)
+
+    def create_fake_repo(self, repo_root: Path, onboarding_ok: bool = True) -> Path:
         (repo_root / "bin").mkdir()
         (repo_root / "scripts").mkdir()
         launcher = repo_root / "bin/aos"
-        launcher.write_text(self.fake_aos_script(), encoding="utf-8")
+        launcher.write_text(self.fake_aos_script(onboarding_ok=onboarding_ok), encoding="utf-8")
         launcher.chmod(0o755)
         installer = repo_root / "scripts/install.sh"
         installer.write_text(
@@ -77,8 +119,21 @@ class FreshUserSmokeTests(unittest.TestCase):
         installer.chmod(0o755)
         return repo_root
 
-    def fake_aos_script(self) -> str:
-        return textwrap.dedent(
+    def fake_aos_script(self, onboarding_ok: bool = True) -> str:
+        onboarding_payload = repr(
+            {"ok": True, "passed_count": 4, "failed_count": 0}
+            if onboarding_ok
+            else {
+                "ok": False,
+                "passed_count": 2,
+                "failed_count": 2,
+                "steps": [
+                    {"id": "self_check", "status": "FAIL", "message": "Self-check failed."},
+                    {"id": "private_scan", "status": "FAIL", "message": "Private scan failed."},
+                ],
+            }
+        )
+        script = textwrap.dedent(
             """\
             #!/usr/bin/env python3
             import json
@@ -126,12 +181,13 @@ class FreshUserSmokeTests(unittest.TestCase):
                 print(output)
                 raise SystemExit(0)
             if command == "onboarding-check":
-                print(json.dumps({"ok": True, "passed_count": 4, "failed_count": 0}))
+                print(json.dumps(__ONBOARDING_PAYLOAD__))
                 raise SystemExit(0)
 
             raise SystemExit(2)
             """
         )
+        return script.replace("__ONBOARDING_PAYLOAD__", onboarding_payload)
 
 
 if __name__ == "__main__":

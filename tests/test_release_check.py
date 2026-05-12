@@ -109,6 +109,39 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertIn("fresh-user-demo", report.steps[-1].message)
             fake_smoke.assert_called_once_with(repo_root.resolve(), launcher=repo_root.resolve() / "bin/aos")
 
+    def test_release_check_preserves_fresh_user_smoke_failure_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+
+            def fake_run(command, **kwargs):
+                return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+            failed_step = SimpleNamespace(
+                id="compile_codex",
+                message="Command failed with exit code 1.",
+                command="/tmp/aos compile codex",
+                path="/tmp/demo-project",
+                stdout_tail="compile stdout",
+                stderr_tail="compile stderr",
+                next_action="Run the failing compile command manually.",
+            )
+            fake_report = SimpleNamespace(ok=False, failed=[failed_step], project_id="fresh-user-demo")
+
+            with patch("agentic_os.release_check.subprocess.run", side_effect=fake_run):
+                with patch("agentic_os.release_check.fresh_user_smoke", return_value=fake_report):
+                    report = release_check(repo_root, fresh_user_smoke_gate=True)
+
+            step = report.steps[-1]
+            self.assertFalse(report.ok)
+            self.assertEqual("fresh_user_smoke", step.id)
+            self.assertEqual("/tmp/aos compile codex", step.command)
+            self.assertEqual("/tmp/demo-project", step.path)
+            self.assertEqual("compile stdout", step.stdout_tail)
+            self.assertEqual("compile stderr", step.stderr_tail)
+            self.assertEqual("Run the failing compile command manually.", step.next_action)
+            self.assertIn("compile_codex", step.message)
+            self.assertIn("Next action:", step.message)
+
     def test_release_check_fails_when_distribution_check_finds_private_output(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))

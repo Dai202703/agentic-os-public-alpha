@@ -25,6 +25,7 @@ class FreshUserSmokeStep:
     path: str | None = None
     stdout_tail: str | None = None
     stderr_tail: str | None = None
+    next_action: str | None = None
 
 
 @dataclass(frozen=True)
@@ -146,12 +147,18 @@ def fresh_user_smoke(
 
 def render_fresh_user_smoke_summary(report: FreshUserSmokeReport) -> str:
     status = "ok" if report.ok else "issues"
-    return (
+    summary = (
         f"AOS fresh-user-smoke {status}: "
         f"{len(report.passed)} passed, "
         f"{len(report.failed)} failed "
         f"({report.project_id})\n"
     )
+    if report.failed:
+        first_failure = report.failed[0]
+        summary += f"first_failure={first_failure.id}: {first_failure.message}\n"
+        if first_failure.next_action:
+            summary += f"next_action={first_failure.next_action}\n"
+    return summary
 
 
 def render_fresh_user_smoke_json(report: FreshUserSmokeReport) -> str:
@@ -173,6 +180,7 @@ def render_fresh_user_smoke_json(report: FreshUserSmokeReport) -> str:
                 "path": step.path,
                 "stdout_tail": step.stdout_tail,
                 "stderr_tail": step.stderr_tail,
+                "next_action": step.next_action,
             }
             for step in report.steps
         ],
@@ -231,6 +239,7 @@ def _install_step(
             path=str(install_dir),
             stdout_tail=_tail(completed.stdout),
             stderr_tail=_tail(completed.stderr),
+            next_action=_next_action_for_step("install_wrapper"),
         )
     return _passed_command_step(
         "install_wrapper",
@@ -251,6 +260,7 @@ def _create_demo_project_step(project_root: Path) -> FreshUserSmokeStep:
             status="FAIL",
             message=f"Could not create demo project: {error}",
             path=str(project_root),
+            next_action=_next_action_for_step("create_demo_project"),
         )
     return FreshUserSmokeStep(
         id="create_demo_project",
@@ -283,6 +293,7 @@ def _compile_provider_step(
             path=str(output),
             stdout_tail=_tail(completed.stdout),
             stderr_tail=_tail(completed.stderr),
+            next_action=_next_action_for_step(f"compile_{provider}"),
         )
 
     return _passed_command_step(
@@ -325,16 +336,24 @@ def _onboarding_step(
             path=str(project_root),
             stdout_tail=_tail(completed.stdout),
             stderr_tail=_tail(completed.stderr),
+            next_action=_next_action_for_step("fresh_user_onboarding"),
         )
     if payload.get("ok") is not True:
+        failed_ids = _failed_onboarding_step_ids(payload)
+        failed_detail = (
+            f"; failed substeps: {', '.join(failed_ids)}"
+            if failed_ids
+            else ""
+        )
         return FreshUserSmokeStep(
             id="fresh_user_onboarding",
             status="FAIL",
-            message="Onboarding check returned ok=false.",
+            message=f"Onboarding check returned ok=false{failed_detail}.",
             command=_format_command(command),
             path=str(project_root),
             stdout_tail=_tail(completed.stdout),
             stderr_tail=_tail(completed.stderr),
+            next_action=_next_action_for_step("fresh_user_onboarding"),
         )
     return _passed_command_step(
         "fresh_user_onboarding",
@@ -408,7 +427,62 @@ def _failed_step(
         path=str(cwd),
         stdout_tail=_tail(completed.stdout),
         stderr_tail=_tail(completed.stderr),
+        next_action=_next_action_for_step(step_id),
     )
+
+
+def _failed_onboarding_step_ids(payload: object) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    steps = payload.get("steps", [])
+    if not isinstance(steps, list):
+        return []
+    failed_ids: list[str] = []
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        if step.get("status") != "FAIL":
+            continue
+        step_id = step.get("id")
+        if step_id:
+            failed_ids.append(str(step_id))
+    return failed_ids
+
+
+def _next_action_for_step(step_id: str) -> str:
+    if step_id == "install_wrapper":
+        return (
+            "Run `sh scripts/install.sh` from the repository root with the same "
+            "AOS_INSTALL_* environment and inspect stderr."
+        )
+    if step_id == "installed_version":
+        return (
+            "Run the installed `aos version --json` command directly and confirm "
+            "the temporary install directory contains an executable `aos` command."
+        )
+    if step_id in {"init_os_home", "doctor_os_home"}:
+        return (
+            "Run the reported `aos --os-home <temp> doctor --summary` command and "
+            "check temporary directory permissions."
+        )
+    if step_id == "create_demo_project":
+        return "Check that the temporary workspace is writable and has available disk space."
+    if step_id == "link_project":
+        return (
+            "Run the reported `aos link-project` command manually and inspect "
+            "project config validation errors."
+        )
+    if step_id.startswith("compile_"):
+        return (
+            "Run the reported `aos compile` command manually and inspect provider "
+            "config, template, and output path errors."
+        )
+    if step_id == "fresh_user_onboarding":
+        return (
+            "Run the reported `aos onboarding-check` command manually and inspect "
+            "the failed substep ids in its JSON output."
+        )
+    return "Run the reported command manually and inspect stdout_tail and stderr_tail."
 
 
 def _format_command(command: Sequence[object]) -> str:

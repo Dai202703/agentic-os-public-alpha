@@ -104,7 +104,7 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.6-public-alpha --to-ref HEAD --json
 ```
 
 Create a clean public snapshot:
@@ -116,7 +116,7 @@ aos public-export --repo-root . --output /tmp/agentic-os-public --json
 The gates check for generated provider outputs, live OS home folders, sensitive filenames, API key patterns, private memory references, private local paths, and install rollback failures.
 `public-export` writes `public-release-manifest.json` with SHA-256 checksums for exported files.
 `release-check` also verifies that code version metadata, `pyproject.toml`, and the top `CHANGELOG.md` release heading agree, and that the release manifest checksum gate passes.
-`fresh-user-smoke` verifies an isolated install, temporary OS home, temporary project link, all four provider compiles, and onboarding check without touching the live OS home or global command.
+`fresh-user-smoke` verifies an isolated install, temporary OS home, temporary project link, all four provider compiles, and onboarding check without touching the live OS home or global command. When it fails, JSON and summary output include the failed command, output tails, and a `next_action`.
 For release managers, `release-upgrade-smoke` verifies the previous public alpha can be installed, updated to the current ref, and rolled back in an isolated temporary install directory.
 
 ## Development

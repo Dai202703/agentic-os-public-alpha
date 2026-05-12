@@ -23,6 +23,7 @@ class ReleaseCheckStep:
     path: str | None = None
     stdout_tail: str | None = None
     stderr_tail: str | None = None
+    next_action: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,7 @@ def render_release_check_json(report: ReleaseCheckReport) -> str:
                 "path": step.path,
                 "stdout_tail": step.stdout_tail,
                 "stderr_tail": step.stderr_tail,
+                "next_action": step.next_action,
             }
             for step in report.steps
         ],
@@ -332,6 +334,7 @@ def _fresh_user_smoke_step(root: Path, launcher: Path) -> ReleaseCheckStep:
             status="FAIL",
             message=f"Fresh user smoke could not run: {error}",
             path=str(root),
+            next_action="Run `aos fresh-user-smoke --repo-root . --json` directly from the release repository.",
         )
 
     if report.ok:
@@ -344,11 +347,20 @@ def _fresh_user_smoke_step(root: Path, launcher: Path) -> ReleaseCheckStep:
 
     first_failure = report.failed[0] if report.failed else None
     detail = first_failure.message if first_failure else "unknown failure"
+    failure_id = first_failure.id if first_failure else "unknown"
+    next_action = getattr(first_failure, "next_action", None) if first_failure else None
+    message = f"Fresh user smoke failed at {failure_id}: {detail}"
+    if next_action:
+        message += f" Next action: {next_action}"
     return ReleaseCheckStep(
         id="fresh_user_smoke",
         status="FAIL",
-        message=f"Fresh user smoke failed: {detail}",
-        path=str(root),
+        message=message,
+        command=getattr(first_failure, "command", None) if first_failure else None,
+        path=getattr(first_failure, "path", None) if first_failure else str(root),
+        stdout_tail=getattr(first_failure, "stdout_tail", None) if first_failure else None,
+        stderr_tail=getattr(first_failure, "stderr_tail", None) if first_failure else None,
+        next_action=next_action,
     )
 
 
