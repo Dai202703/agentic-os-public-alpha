@@ -51,7 +51,7 @@ Public package publication requires the additional public release policy in `doc
 - `aos release-check --repo-root . --json` returns `"ok": true`.
 - `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior for a public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.8-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.9-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
 - The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.
@@ -74,7 +74,7 @@ This is the minimum gate before handing the standalone repository to another mac
 - Integrated pre-release gate passes with `aos release-check --repo-root . --json`.
 - Private development or standalone CI repositories may use `aos release-check --repo-root . --skip-release-manifest --json` only when they are not clean public exports and do not contain `public-release-manifest.json`.
 - The integrated pre-release gate includes release manifest checksum verification.
-- Fresh user smoke passes with `aos fresh-user-smoke --repo-root . --json`.
+- Fresh user smoke passes with `aos fresh-user-smoke --repo-root . --json`, including `memory add session`, filtered `memory list`, and `memory search` in the temporary OS home.
 - The opt-in first-user release gate passes with `aos release-check --repo-root . --fresh-user-smoke --json`.
 - A linked validation project passes `aos onboarding-check --project-root . --json`.
 - Generated provider files have no private paths, API keys, private memory references, or client-sensitive details.

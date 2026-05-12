@@ -17,10 +17,10 @@ Before a public alpha release:
 - `aos distribution-check --repo-root . --json` returns `"ok": true`.
 - `aos public-audit --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --json` returns `"ok": true`.
-- `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
+- `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`, including `memory add session`, filtered `memory list`, and `memory search` in the temporary OS home.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior.
-- `aos release-upgrade-smoke --repo-root . --from-ref v0.1.8-public-alpha --to-ref HEAD --json` returns `"ok": true` for releases after the first public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.8-public-alpha --to-ref HEAD --json` returns `"ok": true` when the previous release ref is available.
+- `aos release-upgrade-smoke --repo-root . --from-ref v0.1.9-public-alpha --to-ref HEAD --json` returns `"ok": true` for releases after the first public alpha.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.9-public-alpha --to-ref HEAD --json` returns `"ok": true` when the previous release ref is available.
 - `aos version` reports the expected release tag for the package being published.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean snapshot.
 - `public-release-manifest.json` includes a `sha256` checksum entry for every exported release file.
@@ -31,11 +31,11 @@ Before a public alpha release:
 
 The first public version should be tagged as `v0.1.0-public-alpha`.
 
-The current public alpha line derives release tags from code metadata as `v<version>-public-alpha`; for example, `0.1.9` becomes `v0.1.9-public-alpha`. The `version_consistency` step inside `aos release-check --repo-root . --json` fails when `src/agentic_os/version.py`, `pyproject.toml`, or the top `CHANGELOG.md` heading disagree.
+The current public alpha line derives release tags from code metadata as `v<version>-public-alpha`; for example, `0.1.10` becomes `v0.1.10-public-alpha`. The `version_consistency` step inside `aos release-check --repo-root . --json` fails when `src/agentic_os/version.py`, `pyproject.toml`, or the top `CHANGELOG.md` heading disagree.
 
 The `release_manifest` step inside `aos release-check --repo-root . --json` fails when `public-release-manifest.json` is missing, lists the wrong files, or has stale SHA-256 checksums.
 
-For `v0.1.9-public-alpha`, the expected upgrade smoke source is `v0.1.8-public-alpha`. Future public alpha releases should update the `--from-ref` value to the immediately previous public tag before publishing.
+For `v0.1.10-public-alpha`, the expected upgrade smoke source is `v0.1.9-public-alpha`. Future public alpha releases should update the `--from-ref` value to the immediately previous public tag before publishing.
 
 The public alpha may change file formats and CLI behavior. Any breaking change should be listed in `CHANGELOG.md`.
 

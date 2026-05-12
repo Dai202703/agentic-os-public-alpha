@@ -14,6 +14,8 @@ PROVIDER_OUTPUTS = {
     "gemini": "GEMINI.md",
     "chatgpt": ".agentic-os/chatgpt-project-instructions.md",
 }
+FRESH_USER_MEMORY_TITLE = "Fresh User Memory Smoke"
+FRESH_USER_MEMORY_SUMMARY = "Verified first-user memory capture, list, and search."
 
 
 @dataclass(frozen=True)
@@ -142,6 +144,24 @@ def fresh_user_smoke(
 
         onboarding_step = _onboarding_step(active, os_home, project_root, root, env)
         steps.append(onboarding_step)
+        if onboarding_step.status == "FAIL":
+            return _report(root, install_dir, os_home, project_root, project_id, steps)
+
+        memory_add_step = _memory_add_session_step(active, os_home, project_root, project_id, root, env)
+        steps.append(memory_add_step)
+        if memory_add_step.status == "FAIL":
+            return _report(root, install_dir, os_home, project_root, project_id, steps)
+
+        memory_list_step = _memory_list_step(active, os_home, project_id, root, env)
+        steps.append(memory_list_step)
+        if memory_list_step.status == "FAIL":
+            return _report(root, install_dir, os_home, project_root, project_id, steps)
+
+        memory_search_step = _memory_search_step(active, os_home, project_id, root, env)
+        steps.append(memory_search_step)
+        if memory_search_step.status == "FAIL":
+            return _report(root, install_dir, os_home, project_root, project_id, steps)
+
         return _report(root, install_dir, os_home, project_root, project_id, steps)
 
 
@@ -365,6 +385,151 @@ def _onboarding_step(
     )
 
 
+def _memory_add_session_step(
+    active: Path,
+    os_home: Path,
+    project_root: Path,
+    project_id: str,
+    cwd: Path,
+    env: dict[str, str],
+) -> FreshUserSmokeStep:
+    command = [
+        active,
+        "--os-home",
+        os_home,
+        "memory",
+        "add",
+        "session",
+        "--project-id",
+        project_id,
+        "--title",
+        FRESH_USER_MEMORY_TITLE,
+        "--summary",
+        FRESH_USER_MEMORY_SUMMARY,
+        "--tag",
+        "fresh-user-smoke",
+        "--decision",
+        "Fresh users should record durable session memory before handoff.",
+        "--artifact",
+        project_root / "AGENTS.md",
+        "--next-action",
+        "Use memory list and search to recover the saved session.",
+    ]
+    completed = _run_command(command, cwd, env)
+    if completed.returncode != 0:
+        return _failed_step("memory_add_session", command, cwd, completed)
+    if _contains_default_os_home(completed.stdout, completed.stderr):
+        return _failed_memory_validation_step(
+            "memory_add_session",
+            command,
+            cwd,
+            completed,
+            "Memory add output referenced the default live OS home instead of the temporary OS home.",
+        )
+    return _passed_command_step(
+        "memory_add_session",
+        command,
+        cwd,
+        completed,
+        "Fresh user session memory was recorded in the temporary OS home.",
+        path=os_home / "memory/sessions",
+    )
+
+
+def _memory_list_step(
+    active: Path,
+    os_home: Path,
+    project_id: str,
+    cwd: Path,
+    env: dict[str, str],
+) -> FreshUserSmokeStep:
+    command = [
+        active,
+        "--os-home",
+        os_home,
+        "memory",
+        "list",
+        "--project-id",
+        project_id,
+    ]
+    completed = _run_command(command, cwd, env)
+    if completed.returncode != 0:
+        return _failed_step("memory_list", command, cwd, completed)
+    if FRESH_USER_MEMORY_TITLE not in completed.stdout:
+        return _failed_memory_validation_step(
+            "memory_list",
+            command,
+            cwd,
+            completed,
+            f"Memory list did not include expected title: {FRESH_USER_MEMORY_TITLE}.",
+        )
+    if _contains_default_os_home(completed.stdout, completed.stderr):
+        return _failed_memory_validation_step(
+            "memory_list",
+            command,
+            cwd,
+            completed,
+            "Memory list output referenced the default live OS home instead of the temporary OS home.",
+        )
+    return _passed_command_step(
+        "memory_list",
+        command,
+        cwd,
+        completed,
+        "Fresh user session memory appeared in filtered memory list.",
+        path=os_home / "memory",
+    )
+
+
+def _memory_search_step(
+    active: Path,
+    os_home: Path,
+    project_id: str,
+    cwd: Path,
+    env: dict[str, str],
+) -> FreshUserSmokeStep:
+    command = [
+        active,
+        "--os-home",
+        os_home,
+        "memory",
+        "search",
+        FRESH_USER_MEMORY_SUMMARY,
+        "--project-id",
+        project_id,
+    ]
+    completed = _run_command(command, cwd, env)
+    if completed.returncode != 0:
+        return _failed_step("memory_search", command, cwd, completed)
+    if FRESH_USER_MEMORY_TITLE not in completed.stdout:
+        return _failed_memory_validation_step(
+            "memory_search",
+            command,
+            cwd,
+            completed,
+            (
+                f"Memory search for {FRESH_USER_MEMORY_SUMMARY!r} did not include "
+                f"expected title: {FRESH_USER_MEMORY_TITLE}."
+            ),
+        )
+    if _contains_default_os_home(completed.stdout, completed.stderr):
+        return _failed_memory_validation_step(
+            "memory_search",
+            command,
+            cwd,
+            completed,
+            "Memory search output referenced the default live OS home instead of the temporary OS home.",
+        )
+    return _passed_command_step(
+        "memory_search",
+        command,
+        cwd,
+        completed,
+        "Fresh user session memory was searchable by its summary text.",
+        path=os_home / "memory",
+    )
+
+
 def _run_command_step(
     step_id: str,
     command: Sequence[object],
@@ -431,6 +596,25 @@ def _failed_step(
     )
 
 
+def _failed_memory_validation_step(
+    step_id: str,
+    command: Sequence[object],
+    cwd: Path,
+    completed: subprocess.CompletedProcess[str],
+    message: str,
+) -> FreshUserSmokeStep:
+    return FreshUserSmokeStep(
+        id=step_id,
+        status="FAIL",
+        message=message,
+        command=_format_command(command),
+        path=str(cwd),
+        stdout_tail=_tail(completed.stdout),
+        stderr_tail=_tail(completed.stderr),
+        next_action=_next_action_for_step(step_id),
+    )
+
+
 def _failed_onboarding_step_ids(payload: object) -> list[str]:
     if not isinstance(payload, dict):
         return []
@@ -482,6 +666,21 @@ def _next_action_for_step(step_id: str) -> str:
             "Run the reported `aos onboarding-check` command manually and inspect "
             "the failed substep ids in its JSON output."
         )
+    if step_id == "memory_add_session":
+        return (
+            "Run the reported `aos memory add session` command manually and confirm "
+            "it writes into the temporary OS home."
+        )
+    if step_id == "memory_list":
+        return (
+            "Run the reported `aos memory list` command manually and confirm the "
+            "fresh-user memory title appears for the demo project."
+        )
+    if step_id == "memory_search":
+        return (
+            "Run the reported `aos memory search` command manually and confirm the "
+            "fresh-user memory title appears for the expected query."
+        )
     return "Run the reported command manually and inspect stdout_tail and stderr_tail."
 
 
@@ -493,3 +692,8 @@ def _tail(value: str | None, limit: int = 1200) -> str | None:
     if not value:
         return None
     return value[-limit:]
+
+
+def _contains_default_os_home(*values: str | None) -> bool:
+    default_os_home = str(Path.home() / ".agentic-os")
+    return any(default_os_home in value for value in values if value)

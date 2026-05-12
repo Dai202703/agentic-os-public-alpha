@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.10-public-alpha
+
+- Extended `aos fresh-user-smoke` to verify first-user memory capture with `memory add session`, filtered `memory list`, and `memory search` against a temporary OS home.
+- Added fail-fast memory diagnostics and default live OS-home leakage checks for fresh-user memory smoke output.
+
 ## v0.1.9-public-alpha
 
 - Added `aos release-check --skip-release-manifest` for standalone CI repositories that are not clean public exports.
