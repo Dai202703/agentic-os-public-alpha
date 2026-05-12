@@ -8,6 +8,7 @@ import tempfile
 from typing import Sequence
 
 from .distribution import distribution_check
+from .fresh_user_smoke import fresh_user_smoke
 from .release_manifest import release_manifest_check
 from .release_upgrade_smoke import release_upgrade_smoke
 from .version import get_release_tag
@@ -46,6 +47,7 @@ def release_check(
     repo_root: str | Path = ".",
     launcher: str | Path | None = None,
     *,
+    fresh_user_smoke_gate: bool = False,
     upgrade_smoke: bool = False,
     from_ref: str | None = None,
     to_ref: str = "HEAD",
@@ -78,6 +80,8 @@ def release_check(
     if distribution_step.status == "PASS":
         steps.append(_release_manifest_step(root))
     steps.append(_install_manager_dry_run_step(root, launcher_path))
+    if fresh_user_smoke_gate:
+        steps.append(_fresh_user_smoke_step(root, launcher_path))
     if upgrade_smoke:
         steps.append(_release_upgrade_smoke_step(root, from_ref, to_ref))
     return ReleaseCheckReport(root, steps)
@@ -315,6 +319,35 @@ def _release_upgrade_smoke_step(root: Path, from_ref: str | None, to_ref: str) -
         id="release_upgrade_smoke",
         status="FAIL",
         message=f"Release upgrade smoke failed: {detail}",
+        path=str(root),
+    )
+
+
+def _fresh_user_smoke_step(root: Path, launcher: Path) -> ReleaseCheckStep:
+    try:
+        report = fresh_user_smoke(root, launcher=launcher)
+    except (OSError, ValueError) as error:
+        return ReleaseCheckStep(
+            id="fresh_user_smoke",
+            status="FAIL",
+            message=f"Fresh user smoke could not run: {error}",
+            path=str(root),
+        )
+
+    if report.ok:
+        return ReleaseCheckStep(
+            id="fresh_user_smoke",
+            status="PASS",
+            message=f"Fresh user smoke passed for project {report.project_id}.",
+            path=str(root),
+        )
+
+    first_failure = report.failed[0] if report.failed else None
+    detail = first_failure.message if first_failure else "unknown failure"
+    return ReleaseCheckStep(
+        id="fresh_user_smoke",
+        status="FAIL",
+        message=f"Fresh user smoke failed: {detail}",
         path=str(root),
     )
 

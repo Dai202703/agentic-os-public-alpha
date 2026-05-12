@@ -9,6 +9,7 @@ Run from the standalone AOS repository root:
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 scripts/readiness_smoke.py --launcher bin/aos --json
+scripts/fresh_user_smoke.py --repo-root . --json
 ```
 
 Both commands must pass before changing a live global command.
@@ -54,6 +55,12 @@ Set `AOS_INSTALL_CHECK_HOME` when you want to inspect the temporary verification
 AOS_INSTALL_CHECK_HOME=/tmp/aos-install-check sh scripts/install.sh
 ```
 
+Set `AOS_INSTALL_LAUNCHER` only when validating or installing a non-default launcher path:
+
+```bash
+AOS_INSTALL_LAUNCHER=/tmp/agentic-os/bin/aos AOS_INSTALL_DIR=/tmp/aos-bin sh scripts/install.sh
+```
+
 For lower-level installs, install the repo-contained launcher as `~/.local/bin/aos`:
 
 ```bash
@@ -95,13 +102,13 @@ If there was no previous command, rollback removes the symlink that was created 
 Before publishing a public alpha after the first release, verify update and rollback across release refs:
 
 ```bash
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json
 ```
 
 For a stricter release gate, run the integrated opt-in check:
 
 ```bash
-aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.4-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.5-public-alpha --to-ref HEAD --json
 ```
 
 The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
@@ -115,6 +122,17 @@ aos public-export --repo-root . --output /tmp/agentic-os-public --json
 ```
 
 Run `aos release-check --repo-root . --json` from the exported package or public repository to verify the manifest. The `release_manifest` step fails if a release file is missing, unlisted, or has a stale checksum.
+
+## Fresh User Smoke
+
+Before publishing a public alpha or handing AOS to another user, verify the first-use path:
+
+```bash
+aos fresh-user-smoke --repo-root . --json
+aos release-check --repo-root . --fresh-user-smoke --json
+```
+
+The smoke creates a temporary install directory, temporary OS home, and temporary demo project. It runs `scripts/install.sh`, initializes the temporary OS home, links the demo project with Codex, Claude Code, Gemini, and ChatGPT, compiles all provider outputs, and runs `aos onboarding-check`. It does not touch the live global command or live `~/.agentic-os` home.
 
 ## Project Verification
 

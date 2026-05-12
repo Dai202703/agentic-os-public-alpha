@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.6-public-alpha
+
+- Added `aos fresh-user-smoke` to verify isolated install, OS home initialization, project link, provider compilation, and onboarding.
+- Added optional `aos release-check --fresh-user-smoke` gating for first-user public release validation.
+
 ## v0.1.5-public-alpha
 
 - Added SHA-256 checksums to `public-release-manifest.json`.

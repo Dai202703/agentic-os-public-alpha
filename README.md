@@ -12,6 +12,7 @@ This repository is prepared as a public alpha. The default design keeps private 
 - Records session and decision memory in local Markdown files
 - Checks project readiness, generated output freshness, and private data risks
 - Runs public-release audit, export, and release gates
+- Verifies first-user install and onboarding in isolated temporary folders
 - Provides safe install, update, and rollback helpers for the global `aos` command
 
 ## Public Alpha Scope
@@ -101,7 +102,9 @@ Run these from a clean standalone repository before publishing or handing the pa
 aos distribution-check --repo-root . --json
 aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json
+aos fresh-user-smoke --repo-root . --json
+aos release-check --repo-root . --fresh-user-smoke --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json
 ```
 
 Create a clean public snapshot:
@@ -113,6 +116,7 @@ aos public-export --repo-root . --output /tmp/agentic-os-public --json
 The gates check for generated provider outputs, live OS home folders, sensitive filenames, API key patterns, private memory references, private local paths, and install rollback failures.
 `public-export` writes `public-release-manifest.json` with SHA-256 checksums for exported files.
 `release-check` also verifies that code version metadata, `pyproject.toml`, and the top `CHANGELOG.md` release heading agree, and that the release manifest checksum gate passes.
+`fresh-user-smoke` verifies an isolated install, temporary OS home, temporary project link, all four provider compiles, and onboarding check without touching the live OS home or global command.
 For release managers, `release-upgrade-smoke` verifies the previous public alpha can be installed, updated to the current ref, and rolled back in an isolated temporary install directory.
 
 ## Development

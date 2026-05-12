@@ -17,6 +17,11 @@ from .doctor import (
     render_doctor_summary,
     render_doctor_text,
 )
+from .fresh_user_smoke import (
+    fresh_user_smoke,
+    render_fresh_user_smoke_json,
+    render_fresh_user_smoke_summary,
+)
 from .memory import add_decision_memory, add_session_memory
 from .memory_index import list_memory, search_memory
 from .onboarding_check import (
@@ -92,10 +97,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     release_check_parser.add_argument("--repo-root", default=".")
     release_check_parser.add_argument("--launcher")
+    release_check_parser.add_argument("--fresh-user-smoke", action="store_true")
     release_check_parser.add_argument("--upgrade-smoke", action="store_true")
     release_check_parser.add_argument("--from-ref")
     release_check_parser.add_argument("--to-ref", default="HEAD")
     release_check_parser.add_argument("--json", action="store_true", dest="as_json")
+    fresh_user_smoke_parser = subparsers.add_parser(
+        "fresh-user-smoke",
+        help="Verify a first-user install, project link, provider compile, and onboarding flow.",
+    )
+    fresh_user_smoke_parser.add_argument("--repo-root", default=".")
+    fresh_user_smoke_parser.add_argument("--launcher")
+    fresh_user_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
     release_upgrade_smoke_parser = subparsers.add_parser(
         "release-upgrade-smoke",
         help="Verify install, update, and rollback between two release refs.",
@@ -258,6 +271,7 @@ def main(
             report = release_check(
                 args.repo_root,
                 args.launcher,
+                fresh_user_smoke_gate=args.fresh_user_smoke,
                 upgrade_smoke=args.upgrade_smoke,
                 from_ref=args.from_ref,
                 to_ref=args.to_ref,
@@ -266,6 +280,14 @@ def main(
                 stdout.write(render_release_check_json(report))
             else:
                 stdout.write(render_release_check_summary(report))
+            return 0 if report.ok else 1
+
+        if args.command == "fresh-user-smoke":
+            report = fresh_user_smoke(args.repo_root, args.launcher)
+            if args.as_json:
+                stdout.write(render_fresh_user_smoke_json(report))
+            else:
+                stdout.write(render_fresh_user_smoke_summary(report))
             return 0 if report.ok else 1
 
         if args.command == "release-upgrade-smoke":

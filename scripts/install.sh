@@ -4,6 +4,7 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 PYTHON_BIN=${PYTHON:-python3}
 INSTALL_DIR=${AOS_INSTALL_DIR:-"$HOME/.local/bin"}
+INSTALL_LAUNCHER=${AOS_INSTALL_LAUNCHER:-"$ROOT_DIR/bin/aos"}
 SKIP_CHECKS=${AOS_INSTALL_SKIP_CHECKS:-0}
 
 PYTHONPATH_VALUE="$ROOT_DIR/src"
@@ -14,11 +15,11 @@ fi
 if [ "$SKIP_CHECKS" != "1" ]; then
   echo "Running AOS pre-install checks..."
   env PYTHONPATH="$PYTHONPATH_VALUE" "$PYTHON_BIN" -m unittest discover -s tests -v
-  "$ROOT_DIR/scripts/readiness_smoke.py" --launcher "$ROOT_DIR/bin/aos" --json
+  "$ROOT_DIR/scripts/readiness_smoke.py" --launcher "$INSTALL_LAUNCHER" --json
 fi
 
 "$PYTHON_BIN" "$ROOT_DIR/scripts/manage_global_aos.py" install \
-  --launcher "$ROOT_DIR/bin/aos" \
+  --launcher "$INSTALL_LAUNCHER" \
   --install-dir "$INSTALL_DIR"
 
 if [ "$SKIP_CHECKS" != "1" ]; then

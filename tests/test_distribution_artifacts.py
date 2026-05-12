@@ -16,6 +16,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("python3 -m agentic_os distribution-check --repo-root . --json", content)
         self.assertIn("python3 -m agentic_os release-check --repo-root . --json", content)
         self.assertIn("python3 -m agentic_os public-audit --repo-root . --json", content)
+        self.assertIn("python3 -m agentic_os fresh-user-smoke --repo-root . --json", content)
 
     def test_github_actions_use_node24_compatible_actions(self):
         workflow = self.repo_root / ".github/workflows/test.yml"
@@ -36,7 +37,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos version", content)
         self.assertIn("python3 -m unittest discover -s tests -v", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos fresh-user-smoke --repo-root . --json", content)
+        self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json", content)
         self.assertIn("public-release-manifest.json", content)
         self.assertIn("SHA-256", content)
 
@@ -48,7 +51,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("GitHub Actions test workflow passes", content)
         self.assertIn("aos distribution-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --json", content)
-        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
+        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.5-public-alpha --to-ref HEAD --json", content)
         self.assertIn("release manifest checksum", content)
         self.assertIn("aos public-audit --repo-root . --json", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
@@ -73,6 +77,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("## Install", content)
         self.assertIn("scripts/install.sh", content)
         self.assertIn("AOS_INSTALL_SKIP_CHECKS", content)
+        self.assertIn("AOS_INSTALL_LAUNCHER", content)
         self.assertIn("## Update", content)
         self.assertIn("## Rollback", content)
         self.assertIn("scripts/manage_global_aos.py install", content)
@@ -81,15 +86,17 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos version", content)
         self.assertIn("aos doctor --summary", content)
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos fresh-user-smoke --repo-root . --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.5-public-alpha --to-ref HEAD --json", content)
         self.assertIn("public-release-manifest.json", content)
 
     def test_public_release_doc_documents_version_traceability(self):
         content = (self.repo_root / "docs/public-release.md").read_text(encoding="utf-8")
 
         self.assertIn("aos version", content)
+        self.assertIn("v0.1.6-public-alpha", content)
         self.assertIn("v0.1.5-public-alpha", content)
-        self.assertIn("v0.1.4-public-alpha", content)
         self.assertIn("version_consistency", content)
         self.assertIn("release_manifest", content)
+        self.assertIn("fresh-user-smoke", content)
         self.assertIn("release-upgrade-smoke", content)

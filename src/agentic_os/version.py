@@ -9,7 +9,7 @@ import sys
 from .paths import resolve_os_home
 
 
-VERSION = "0.1.5"
+VERSION = "0.1.6"
 RELEASE_CHANNEL = "public-alpha"
 
 
