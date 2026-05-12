@@ -103,6 +103,47 @@ class ReleaseCheckTests(unittest.TestCase):
                 to_ref="HEAD",
             )
 
+    def test_release_check_preserves_upgrade_smoke_failure_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+
+            def fake_run(command, **kwargs):
+                return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+            failed_step = SimpleNamespace(
+                id="checkout_previous_ref",
+                status="FAIL",
+                message="Command failed with exit code 1.",
+                command="git checkout missing-tag",
+                path="/tmp/previous",
+                stdout_tail="checkout stdout",
+                stderr_tail="checkout stderr",
+            )
+            fake_report = SimpleNamespace(
+                ok=False,
+                failed=[failed_step],
+                previous_version={},
+                current_version={},
+            )
+
+            with patch("agentic_os.release_check.subprocess.run", side_effect=fake_run):
+                with patch("agentic_os.release_check.release_upgrade_smoke", return_value=fake_report):
+                    report = release_check(
+                        repo_root,
+                        upgrade_smoke=True,
+                        from_ref="missing-tag",
+                        to_ref="HEAD",
+                    )
+
+            step = report.steps[-1]
+            self.assertFalse(report.ok)
+            self.assertEqual("release_upgrade_smoke", step.id)
+            self.assertEqual("git checkout missing-tag", step.command)
+            self.assertEqual("/tmp/previous", step.path)
+            self.assertEqual("checkout stdout", step.stdout_tail)
+            self.assertEqual("checkout stderr", step.stderr_tail)
+            self.assertIn("checkout_previous_ref", step.message)
+
     def test_release_check_can_include_fresh_user_smoke_when_requested(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))

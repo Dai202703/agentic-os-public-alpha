@@ -318,11 +318,15 @@ def _release_upgrade_smoke_step(root: Path, from_ref: str | None, to_ref: str) -
 
     first_failure = report.failed[0] if report.failed else None
     detail = first_failure.message if first_failure else "unknown failure"
+    failure_id = first_failure.id if first_failure else "unknown"
     return ReleaseCheckStep(
         id="release_upgrade_smoke",
         status="FAIL",
-        message=f"Release upgrade smoke failed: {detail}",
-        path=str(root),
+        message=f"Release upgrade smoke failed at {failure_id}: {detail}",
+        command=getattr(first_failure, "command", None) if first_failure else None,
+        path=getattr(first_failure, "path", str(root)) if first_failure else str(root),
+        stdout_tail=getattr(first_failure, "stdout_tail", None) if first_failure else None,
+        stderr_tail=getattr(first_failure, "stderr_tail", None) if first_failure else None,
     )
 
 

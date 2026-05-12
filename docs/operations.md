@@ -102,16 +102,26 @@ If there was no previous command, rollback removes the symlink that was created 
 Before publishing a public alpha after the first release, verify update and rollback across release refs:
 
 ```bash
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.9-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.10-public-alpha --to-ref HEAD --json
 ```
 
 For a stricter release gate, run the integrated opt-in check:
 
 ```bash
-aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.9-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.10-public-alpha --to-ref HEAD --json
 ```
 
 The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
+
+## Public Release Gate
+
+Before publishing a public alpha, run the canonical gate from the public repository:
+
+```bash
+aos public-release-gate --repo-root . --from-ref v0.1.10-public-alpha --json
+```
+
+This runs full-history `public-audit` and strict `release-check` with release manifest verification, fresh-user memory smoke, and upgrade smoke enabled. Use `--tree-only` only for development or standalone CI repositories whose git history is not intended for publication.
 
 ## Release Manifest
 

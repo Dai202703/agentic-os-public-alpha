@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.11-public-alpha
+
+- Added `aos public-release-gate` as a canonical public release gate that bundles full public audit, release manifest, fresh-user memory smoke, and upgrade smoke validation.
+- Preserved nested release-check and public-audit diagnostics in public release gate JSON output.
+- Preserved release-upgrade smoke command and output tails inside `release-check` failure diagnostics.
+
 ## v0.1.10-public-alpha
 
 - Extended `aos fresh-user-smoke` to verify first-user memory capture with `memory add session`, filtered `memory list`, and `memory search` against a temporary OS home.

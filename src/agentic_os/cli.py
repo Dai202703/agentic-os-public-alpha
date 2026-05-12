@@ -43,6 +43,11 @@ from .release_upgrade_smoke import (
 )
 from .public_audit import public_audit, render_public_audit_json, render_public_audit_summary
 from .public_export import public_export, render_public_export_json, render_public_export_summary
+from .public_release_gate import (
+    public_release_gate,
+    render_public_release_gate_json,
+    render_public_release_gate_summary,
+)
 from .scaffold import create_skill, create_workflow
 from .self_check import self_check, render_self_check_json, render_self_check_summary
 from .version import collect_version_info, render_version_json, render_version_text
@@ -141,6 +146,20 @@ def build_parser() -> argparse.ArgumentParser:
     public_export_parser.add_argument("--output", required=True)
     public_export_parser.add_argument("--force", action="store_true")
     public_export_parser.add_argument("--json", action="store_true", dest="as_json")
+    public_release_gate_parser = subparsers.add_parser(
+        "public-release-gate",
+        help="Run the canonical public release gate with audit, manifest, fresh-user, and upgrade checks.",
+    )
+    public_release_gate_parser.add_argument("--repo-root", default=".")
+    public_release_gate_parser.add_argument("--launcher")
+    public_release_gate_parser.add_argument("--from-ref")
+    public_release_gate_parser.add_argument("--to-ref", default="HEAD")
+    public_release_gate_parser.add_argument(
+        "--tree-only",
+        action="store_true",
+        help="Development/CI only: skip git history audit and scan only the current tree.",
+    )
+    public_release_gate_parser.add_argument("--json", action="store_true", dest="as_json")
     link_project_parser = subparsers.add_parser(
         "link-project",
         help="Create a project Agentic OS config.",
@@ -324,6 +343,20 @@ def main(
             else:
                 stdout.write(render_public_export_summary(manifest))
             return 0
+
+        if args.command == "public-release-gate":
+            report = public_release_gate(
+                args.repo_root,
+                args.launcher,
+                from_ref=args.from_ref,
+                to_ref=args.to_ref,
+                include_history=not args.tree_only,
+            )
+            if args.as_json:
+                stdout.write(render_public_release_gate_json(report))
+            else:
+                stdout.write(render_public_release_gate_summary(report))
+            return 0 if report.ok else 1
 
         if args.command == "link-project":
             providers = args.providers or ["codex", "claude"]
