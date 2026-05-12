@@ -48,6 +48,7 @@ def release_check(
     repo_root: str | Path = ".",
     launcher: str | Path | None = None,
     *,
+    release_manifest_gate: bool = True,
     fresh_user_smoke_gate: bool = False,
     upgrade_smoke: bool = False,
     from_ref: str | None = None,
@@ -78,7 +79,7 @@ def release_check(
     ]
     distribution_step = _distribution_step(root)
     steps.append(distribution_step)
-    if distribution_step.status == "PASS":
+    if distribution_step.status == "PASS" and release_manifest_gate:
         steps.append(_release_manifest_step(root))
     steps.append(_install_manager_dry_run_step(root, launcher_path))
     if fresh_user_smoke_gate:

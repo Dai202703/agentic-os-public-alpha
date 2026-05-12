@@ -97,6 +97,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     release_check_parser.add_argument("--repo-root", default=".")
     release_check_parser.add_argument("--launcher")
+    release_check_parser.add_argument(
+        "--skip-release-manifest",
+        action="store_true",
+        help="Skip the generated release manifest checksum gate.",
+    )
     release_check_parser.add_argument("--fresh-user-smoke", action="store_true")
     release_check_parser.add_argument("--upgrade-smoke", action="store_true")
     release_check_parser.add_argument("--from-ref")
@@ -276,6 +281,7 @@ def main(
             report = release_check(
                 args.repo_root,
                 args.launcher,
+                release_manifest_gate=not args.skip_release_manifest,
                 fresh_user_smoke_gate=args.fresh_user_smoke,
                 upgrade_smoke=args.upgrade_smoke,
                 from_ref=args.from_ref,

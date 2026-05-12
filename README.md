@@ -104,10 +104,11 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.7-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.8-public-alpha --to-ref HEAD --json
 ```
 
 Use `aos public-audit --repo-root . --tree-only --json` only for private development or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
+Use `aos release-check --repo-root . --skip-release-manifest --json` only for repositories that are not clean public exports and therefore do not contain `public-release-manifest.json`.
 
 Create a clean public snapshot:
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.9-public-alpha
+
+- Added `aos release-check --skip-release-manifest` for standalone CI repositories that are not clean public exports.
+- Updated GitHub Actions to keep full release manifest validation on `Dai202703/agentic-os-public-alpha` while skipping the generated manifest gate in non-public repositories.
+
 ## v0.1.8-public-alpha
 
 - Added explicit `aos public-audit --tree-only` mode for current-tree public audit checks in development and standalone CI repositories.

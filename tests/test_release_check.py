@@ -58,6 +58,18 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertEqual(["release_manifest"], [step.id for step in failed])
             self.assertIn("1 findings", failed[0].message)
 
+    def test_release_check_can_skip_release_manifest_for_standalone_ci(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+            (repo_root / "public-release-manifest.json").unlink()
+
+            with patch("agentic_os.release_check.subprocess.run") as fake_run:
+                fake_run.return_value = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
+                report = release_check(repo_root, release_manifest_gate=False)
+
+            self.assertTrue(report.ok)
+            self.assertNotIn("release_manifest", [step.id for step in report.steps])
+
     def test_release_check_can_include_upgrade_smoke_when_requested(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))
@@ -212,6 +224,30 @@ class ReleaseCheckTests(unittest.TestCase):
                 ],
                 [step["id"] for step in payload["steps"]],
             )
+
+    def test_release_check_cli_can_skip_release_manifest(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+            (repo_root / "public-release-manifest.json").unlink()
+            stdout = io.StringIO()
+
+            with patch("agentic_os.release_check.subprocess.run") as fake_run:
+                fake_run.return_value = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
+                code = main(
+                    [
+                        "release-check",
+                        "--repo-root",
+                        str(repo_root),
+                        "--skip-release-manifest",
+                        "--json",
+                    ],
+                    stdout=stdout,
+                )
+
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(0, code)
+            self.assertTrue(payload["ok"])
+            self.assertNotIn("release_manifest", [step["id"] for step in payload["steps"]])
 
     def create_release_repo(self, repo_root: Path) -> Path:
         (repo_root / "src/agentic_os").mkdir(parents=True)
