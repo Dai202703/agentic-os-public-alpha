@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.12-public-alpha
+
+- Added previous public-alpha tag inference to `aos public-release-gate` when `--from-ref` is omitted.
+- Updated public-alpha CI to run the canonical release gate without a hardcoded previous tag.
+- Preserved `--from-ref` as an explicit override for unusual release validation cases.
+
 ## v0.1.11-public-alpha
 
 - Added `aos public-release-gate` as a canonical public release gate that bundles full public audit, release manifest, fresh-user memory smoke, and upgrade smoke validation.

@@ -1,5 +1,6 @@
 import io
 import json
+import subprocess
 from types import SimpleNamespace
 import tempfile
 import unittest
@@ -8,6 +9,7 @@ from unittest.mock import patch
 
 from agentic_os.cli import main
 from agentic_os.public_release_gate import (
+    infer_previous_release_tag,
     public_release_gate,
     render_public_release_gate_json,
 )
@@ -126,6 +128,47 @@ class PublicReleaseGateTests(unittest.TestCase):
         self.assertIn("release_upgrade_smoke", report.failed[0].message)
         fake_release.assert_called_once()
         self.assertIsNone(fake_release.call_args.kwargs["from_ref"])
+        self.assertEqual("missing", report.failed[0].details["from_ref_source"])
+
+    def test_public_release_gate_infers_previous_public_alpha_tag(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_tagged_repo(Path(temp_dir))
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report) as fake_release:
+                    report = public_release_gate(repo_root)
+
+        self.assertTrue(report.ok)
+        fake_release.assert_called_once()
+        self.assertEqual("v0.1.11-public-alpha", fake_release.call_args.kwargs["from_ref"])
+        self.assertEqual("v0.1.11-public-alpha", report.steps[1].details["from_ref"])
+        self.assertEqual("inferred", report.steps[1].details["from_ref_source"])
+
+    def test_infer_previous_release_tag_ignores_current_future_and_other_channels(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_tagged_repo(Path(temp_dir))
+
+            previous_tag = infer_previous_release_tag(repo_root)
+
+        self.assertEqual("v0.1.11-public-alpha", previous_tag)
+
+    def test_infer_previous_release_tag_reads_target_repo_version_metadata(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_tagged_repo(
+                Path(temp_dir),
+                version="2.0.0",
+                tags=[
+                    "v1.9.9-public-alpha",
+                    "v2.0.0-public-alpha",
+                    "v2.1.0-public-alpha",
+                ],
+            )
+
+            previous_tag = infer_previous_release_tag(repo_root)
+
+        self.assertEqual("v1.9.9-public-alpha", previous_tag)
 
     def test_public_release_gate_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -156,6 +199,31 @@ class PublicReleaseGateTests(unittest.TestCase):
         self.assertEqual("public_audit", payload["steps"][0]["id"])
         self.assertEqual("release_check", payload["steps"][1]["id"])
         self.assertEqual("version_consistency", payload["steps"][1]["details"]["steps"][0]["id"])
+
+    def test_public_release_gate_cli_infers_from_ref_when_omitted(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_tagged_repo(Path(temp_dir))
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            stdout = io.StringIO()
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report) as fake_release:
+                    code = main(
+                        [
+                            "public-release-gate",
+                            "--repo-root",
+                            str(repo_root),
+                            "--json",
+                        ],
+                        stdout=stdout,
+                    )
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(0, code)
+        self.assertTrue(payload["ok"])
+        self.assertEqual("v0.1.11-public-alpha", fake_release.call_args.kwargs["from_ref"])
+        self.assertEqual("inferred", payload["steps"][1]["details"]["from_ref_source"])
 
     def test_public_release_gate_cli_preserves_json_when_release_check_raises(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -227,6 +295,46 @@ class PublicReleaseGateTests(unittest.TestCase):
             steps=passed_steps + failed_steps,
             passed=passed_steps,
             failed=failed_steps,
+        )
+
+    def create_tagged_repo(
+        self,
+        temp_root: Path,
+        *,
+        version: str = "0.1.12",
+        tags: list[str] | None = None,
+    ) -> Path:
+        repo_root = temp_root / "release-repo"
+        repo_root.mkdir()
+        self.git(repo_root, "init")
+        self.git(repo_root, "config", "user.email", "aos-test@example.com")
+        self.git(repo_root, "config", "user.name", "AOS Test")
+        self.git(repo_root, "config", "commit.gpgsign", "false")
+        (repo_root / "src/agentic_os").mkdir(parents=True)
+        (repo_root / "src/agentic_os/version.py").write_text(
+            f'VERSION = "{version}"\nRELEASE_CHANNEL = "public-alpha"\n',
+            encoding="utf-8",
+        )
+        (repo_root / "README.md").write_text("release repo\n", encoding="utf-8")
+        self.git(repo_root, "add", "README.md", "src/agentic_os/version.py")
+        self.git(repo_root, "commit", "-m", "initial")
+        for tag in tags or [
+            "v0.1.10-public-alpha",
+            "v0.1.11-public-alpha",
+            "v0.1.12-public-alpha",
+            "v0.1.13-public-alpha",
+            "v0.1.11-private-alpha",
+        ]:
+            self.git(repo_root, "tag", tag)
+        return repo_root
+
+    def git(self, repo_root: Path, *args: str) -> None:
+        subprocess.run(
+            ["git", *args],
+            cwd=repo_root,
+            check=True,
+            text=True,
+            capture_output=True,
         )
 
 

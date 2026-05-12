@@ -52,4 +52,4 @@ jobs:
 
       - name: Run public release gate
         if: github.repository == 'Dai202703/agentic-os-public-alpha' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
-        run: python3 -m agentic_os public-release-gate --repo-root . --from-ref v0.1.10-public-alpha --json
+        run: python3 -m agentic_os public-release-gate --repo-root . --json
