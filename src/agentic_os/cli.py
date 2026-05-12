@@ -36,6 +36,11 @@ from .release_check import (
     render_release_check_json,
     render_release_check_summary,
 )
+from .release_install_smoke import (
+    release_install_smoke,
+    render_release_install_smoke_json,
+    render_release_install_smoke_summary,
+)
 from .release_upgrade_smoke import (
     release_upgrade_smoke,
     render_release_upgrade_smoke_json,
@@ -127,6 +132,14 @@ def build_parser() -> argparse.ArgumentParser:
     release_upgrade_smoke_parser.add_argument("--from-ref", required=True)
     release_upgrade_smoke_parser.add_argument("--to-ref", default="HEAD")
     release_upgrade_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
+    release_install_smoke_parser = subparsers.add_parser(
+        "release-install-smoke",
+        help="Verify a published release ref can be fetched, installed, and version-checked.",
+    )
+    release_install_smoke_parser.add_argument("--source", required=True)
+    release_install_smoke_parser.add_argument("--ref", required=True)
+    release_install_smoke_parser.add_argument("--expected-tag")
+    release_install_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
     public_audit_parser = subparsers.add_parser(
         "public-audit",
         help="Scan the current tree and git history for public-release privacy risks.",
@@ -154,6 +167,8 @@ def build_parser() -> argparse.ArgumentParser:
     public_release_gate_parser.add_argument("--launcher")
     public_release_gate_parser.add_argument("--from-ref")
     public_release_gate_parser.add_argument("--to-ref", default="HEAD")
+    public_release_gate_parser.add_argument("--release-install-source")
+    public_release_gate_parser.add_argument("--release-install-ref")
     public_release_gate_parser.add_argument(
         "--tree-only",
         action="store_true",
@@ -328,6 +343,18 @@ def main(
                 stdout.write(render_release_upgrade_smoke_summary(report))
             return 0 if report.ok else 1
 
+        if args.command == "release-install-smoke":
+            report = release_install_smoke(
+                source=args.source,
+                ref=args.ref,
+                expected_tag=args.expected_tag,
+            )
+            if args.as_json:
+                stdout.write(render_release_install_smoke_json(report))
+            else:
+                stdout.write(render_release_install_smoke_summary(report))
+            return 0 if report.ok else 1
+
         if args.command == "public-audit":
             report = public_audit(args.repo_root, include_history=not args.tree_only)
             if args.as_json:
@@ -351,6 +378,8 @@ def main(
                 from_ref=args.from_ref,
                 to_ref=args.to_ref,
                 include_history=not args.tree_only,
+                release_install_source=args.release_install_source,
+                release_install_ref=args.release_install_ref,
             )
             if args.as_json:
                 stdout.write(render_public_release_gate_json(report))

@@ -22,6 +22,7 @@ Before a public alpha release:
 - `aos release-upgrade-smoke --repo-root . --from-ref v0.1.11-public-alpha --to-ref HEAD --json` returns `"ok": true` for releases after the first public alpha.
 - `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.11-public-alpha --to-ref HEAD --json` returns `"ok": true` when the previous release ref is available.
 - `aos public-release-gate --repo-root . --json` returns `"ok": true` as the canonical public release gate.
+- After the public tag exists, `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json` returns `"ok": true`.
 - `aos version` reports the expected release tag for the package being published.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean snapshot.
 - `public-release-manifest.json` includes a `sha256` checksum entry for every exported release file.
@@ -32,11 +33,13 @@ Before a public alpha release:
 
 The first public version should be tagged as `v0.1.0-public-alpha`.
 
-The current public alpha line derives release tags from code metadata as `v<version>-public-alpha`; for example, `0.1.12` becomes `v0.1.12-public-alpha`. The `version_consistency` step inside `aos release-check --repo-root . --json` fails when `src/agentic_os/version.py`, `pyproject.toml`, or the top `CHANGELOG.md` heading disagree.
+The current public alpha line derives release tags from code metadata as `v<version>-public-alpha`; for example, `0.1.13` becomes `v0.1.13-public-alpha`. The `version_consistency` step inside `aos release-check --repo-root . --json` fails when `src/agentic_os/version.py`, `pyproject.toml`, or the top `CHANGELOG.md` heading disagree.
 
 The `release_manifest` step inside `aos release-check --repo-root . --json` fails when `public-release-manifest.json` is missing, lists the wrong files, or has stale SHA-256 checksums.
 
-For `v0.1.12-public-alpha`, the expected direct upgrade smoke source is `v0.1.11-public-alpha`. The canonical `aos public-release-gate --repo-root . --json` infers that previous public-alpha tag automatically from git tags. Use `--from-ref` only when validating an unusual release path.
+For `v0.1.13-public-alpha`, the expected direct upgrade smoke source is `v0.1.12-public-alpha`. The canonical `aos public-release-gate --repo-root . --json` infers that previous public-alpha tag automatically from git tags. Use `--from-ref` only when validating an unusual release path.
+
+`aos release-install-smoke` is a post-tag/public-source smoke. It fetches the requested tag from the release source, checks that tag metadata matches `src/agentic_os/version.py`, runs the release installer into a temporary command path, verifies the installed launcher target, and compares `aos version --json` to the release metadata.
 
 The public alpha may change file formats and CLI behavior. Any breaking change should be listed in `CHANGELOG.md`.
 

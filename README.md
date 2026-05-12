@@ -106,6 +106,7 @@ aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
 aos release-upgrade-smoke --repo-root . --from-ref v0.1.11-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json
 ```
 
 Use `aos public-audit --repo-root . --tree-only --json` only for private development or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
@@ -123,6 +124,7 @@ The gates check for generated provider outputs, live OS home folders, sensitive 
 `fresh-user-smoke` verifies an isolated install, temporary OS home, temporary project link, all four provider compiles, onboarding check, `memory add session`, filtered `memory list`, and `memory search` without touching the live OS home or global command. When it fails, JSON and summary output include the failed command, output tails, and a `next_action`.
 For release managers, `release-upgrade-smoke` verifies the previous public alpha can be installed, updated to the current ref, and rolled back in an isolated temporary install directory.
 `public-release-gate` is the canonical public release command. It runs full-history `public-audit` and strict `release-check` with manifest, fresh-user memory smoke, and upgrade smoke enabled. When `--from-ref` is omitted, it infers the previous public-alpha tag from git tags.
+After a public tag exists, `release-install-smoke` verifies the published source can be fetched by tag, installed into a temporary command path, and checked with `aos version --json`. Use it as a post-tag/public-source smoke, not as a replacement for the local pre-release gate.
 
 ## Development
 

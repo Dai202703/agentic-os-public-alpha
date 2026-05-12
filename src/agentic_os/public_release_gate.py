@@ -7,6 +7,7 @@ from typing import Any
 
 from .public_audit import public_audit
 from .release_check import release_check
+from .release_install_smoke import release_install_smoke
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,8 @@ def public_release_gate(
     from_ref: str | None = None,
     to_ref: str = "HEAD",
     include_history: bool = True,
+    release_install_source: str | Path | None = None,
+    release_install_ref: str | None = None,
 ) -> PublicReleaseGateReport:
     root = Path(repo_root).expanduser().resolve()
     launcher_path = Path(launcher).expanduser().resolve() if launcher else root / "bin/aos"
@@ -51,6 +54,14 @@ def public_release_gate(
         _public_audit_step(root, include_history=include_history),
         _release_check_step(root, launcher_path, from_ref=from_ref, to_ref=to_ref),
     ]
+    if release_install_source:
+        steps.append(
+            _release_install_smoke_step(
+                root,
+                release_install_source,
+                release_install_ref,
+            )
+        )
     return PublicReleaseGateReport(repo_root=root, steps=steps)
 
 
@@ -96,6 +107,16 @@ def infer_previous_release_tag(
     if not candidates:
         return None
     return max(candidates, key=lambda candidate: candidate[0])[1]
+
+
+def infer_current_release_tag(repo_root: str | Path = ".") -> str | None:
+    root = Path(repo_root).expanduser().resolve()
+    try:
+        version, release_channel = _read_repo_version_metadata(root)
+    except (OSError, ValueError):
+        return None
+    suffix = f"-{release_channel}" if release_channel else ""
+    return f"v{version}{suffix}"
 
 
 def render_public_release_gate_summary(report: PublicReleaseGateReport) -> str:
@@ -282,6 +303,104 @@ def _release_check_step(
         path=str(root),
         details=details,
         next_action=next_action,
+    )
+
+
+def _release_install_smoke_step(
+    root: Path,
+    source: str | Path,
+    release_ref: str | None,
+) -> PublicReleaseGateStep:
+    resolved_ref = release_ref
+    ref_source = "provided" if release_ref else "missing"
+    if resolved_ref is None:
+        resolved_ref = infer_current_release_tag(root)
+        if resolved_ref is not None:
+            ref_source = "inferred"
+
+    if resolved_ref is None:
+        return PublicReleaseGateStep(
+            id="release_install_smoke",
+            status="FAIL",
+            message="Release install smoke requires a release ref but version metadata could not be read.",
+            path=str(root),
+            details={
+                "source": str(source),
+                "ref": None,
+                "ref_source": ref_source,
+                "passed_count": 0,
+                "failed_count": 1,
+                "steps": [],
+            },
+            next_action="Pass `--release-install-ref <public-release-tag>` or fix src/agentic_os/version.py.",
+        )
+
+    try:
+        report = release_install_smoke(source=source, ref=resolved_ref)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        return PublicReleaseGateStep(
+            id="release_install_smoke",
+            status="FAIL",
+            message=f"Release install smoke could not run: {error}",
+            path=str(root),
+            details={
+                "source": str(source),
+                "ref": resolved_ref,
+                "ref_source": ref_source,
+                "passed_count": 0,
+                "failed_count": 1,
+                "steps": [],
+                "error": str(error),
+            },
+            next_action="Run `aos release-install-smoke --source <url-or-path> --ref <tag> --json` directly.",
+        )
+
+    details = {
+        "source": report.source,
+        "ref": report.ref,
+        "ref_source": ref_source,
+        "normalized_ref": report.normalized_ref,
+        "expected_tag": report.expected_tag,
+        "clone_root": str(report.clone_root),
+        "install_dir": str(report.install_dir),
+        "expected_version": report.expected_version,
+        "installed_version": report.installed_version,
+        "passed_count": len(report.passed),
+        "failed_count": len(report.failed),
+        "steps": [
+            {
+                "id": step.id,
+                "status": step.status,
+                "message": step.message,
+                "command": step.command,
+                "path": step.path,
+                "stdout_tail": step.stdout_tail,
+                "stderr_tail": step.stderr_tail,
+                "next_action": step.next_action,
+            }
+            for step in report.steps
+        ],
+    }
+    if report.ok:
+        return PublicReleaseGateStep(
+            id="release_install_smoke",
+            status="PASS",
+            message="Release install smoke passed against the published release source.",
+            path=str(root),
+            details=details,
+        )
+
+    first_failure = report.failed[0] if report.failed else None
+    failure_detail = first_failure.message if first_failure else "unknown failure"
+    failure_id = first_failure.id if first_failure else "unknown"
+    next_action = getattr(first_failure, "next_action", None) if first_failure else None
+    return PublicReleaseGateStep(
+        id="release_install_smoke",
+        status="FAIL",
+        message=f"Release install smoke failed at {failure_id}: {failure_detail}",
+        path=str(root),
+        details=details,
+        next_action=next_action or "Run `aos release-install-smoke --source <url-or-path> --ref <tag> --json` directly.",
     )
 
 

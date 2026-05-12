@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.13-public-alpha
+
+- Added `aos release-install-smoke` to verify a published release ref can be fetched, installed into a temporary command path, and version-checked.
+- Added optional `public-release-gate` release install smoke inputs for post-tag public-source validation.
+- Updated public-alpha CI and release docs to run the install smoke only for public release tag builds.
+
 ## v0.1.12-public-alpha
 
 - Added previous public-alpha tag inference to `aos public-release-gate` when `--from-ref` is omitted.

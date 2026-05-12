@@ -15,6 +15,7 @@ class CliParserTests(unittest.TestCase):
         self.assertIn("release-check", help_text)
         self.assertIn("fresh-user-smoke", help_text)
         self.assertIn("release-upgrade-smoke", help_text)
+        self.assertIn("release-install-smoke", help_text)
         self.assertIn("public-audit", help_text)
         self.assertIn("public-export", help_text)
         self.assertIn("public-release-gate", help_text)

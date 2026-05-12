@@ -119,6 +119,6 @@ class InstallationManagerTests(unittest.TestCase):
             active = install_dir / "aos"
             self.assertTrue(active.is_symlink())
             self.assertEqual(self.launcher.resolve(), active.resolve())
-            self.assertIn("AOS version 0.1.12", install.stdout)
-            self.assertIn("Release tag: v0.1.12-public-alpha", install.stdout)
+            self.assertIn("AOS version 0.1.13", install.stdout)
+            self.assertIn("Release tag: v0.1.13-public-alpha", install.stdout)
             self.assertIn("aos install complete", install.stdout)

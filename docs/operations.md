@@ -123,6 +123,16 @@ aos public-release-gate --repo-root . --json
 
 This runs full-history `public-audit` and strict `release-check` with release manifest verification, fresh-user memory smoke, and upgrade smoke enabled. It infers the previous public-alpha tag from git tags when `--from-ref` is omitted. Use `--tree-only` only for development or standalone CI repositories whose git history is not intended for publication.
 
+## Release Install Smoke
+
+After the public tag exists, verify that the published source can be fetched and installed independently:
+
+```bash
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json
+```
+
+This smoke fetches the requested tag into a temporary checkout, runs `scripts/install.sh` with temporary install and OS-home paths, verifies the installed `aos` symlink points to the fetched release, and compares `aos version --json` to the release metadata. It does not touch the live global command or live `~/.agentic-os` home.
+
 ## Release Manifest
 
 `aos public-export` writes `public-release-manifest.json` with the exported file list and SHA-256 checksum for each file:

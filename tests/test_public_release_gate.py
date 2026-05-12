@@ -24,7 +24,8 @@ class PublicReleaseGateTests(unittest.TestCase):
 
             with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report) as fake_audit:
                 with patch("agentic_os.public_release_gate.release_check", return_value=release_report) as fake_release:
-                    report = public_release_gate(repo_root, from_ref="v0.1.10-public-alpha")
+                    with patch("agentic_os.public_release_gate.release_install_smoke") as fake_install:
+                        report = public_release_gate(repo_root, from_ref="v0.1.10-public-alpha")
 
         self.assertTrue(report.ok)
         self.assertEqual(["public_audit", "release_check"], [step.id for step in report.steps])
@@ -40,6 +41,7 @@ class PublicReleaseGateTests(unittest.TestCase):
             from_ref="v0.1.10-public-alpha",
             to_ref="HEAD",
         )
+        fake_install.assert_not_called()
 
     def test_public_release_gate_tree_only_skips_history_audit(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -225,6 +227,119 @@ class PublicReleaseGateTests(unittest.TestCase):
         self.assertEqual("v0.1.11-public-alpha", fake_release.call_args.kwargs["from_ref"])
         self.assertEqual("inferred", payload["steps"][1]["details"]["from_ref_source"])
 
+    def test_public_release_gate_runs_release_install_smoke_only_when_source_is_provided(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            install_report = self.release_install_report(repo_root, ok=True)
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report):
+                    with patch("agentic_os.public_release_gate.release_install_smoke", return_value=install_report) as fake_install:
+                        report = public_release_gate(
+                            repo_root,
+                            from_ref="v0.1.10-public-alpha",
+                            release_install_source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+                            release_install_ref="v0.1.12-public-alpha",
+                        )
+
+        self.assertTrue(report.ok)
+        self.assertEqual(["public_audit", "release_check", "release_install_smoke"], [step.id for step in report.steps])
+        fake_install.assert_called_once_with(
+            source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+            ref="v0.1.12-public-alpha",
+        )
+        self.assertEqual("provided", report.steps[2].details["ref_source"])
+        self.assertEqual("refs/tags/v0.1.12-public-alpha", report.steps[2].details["normalized_ref"])
+
+    def test_public_release_gate_infers_release_install_ref_from_current_metadata(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_tagged_repo(Path(temp_dir), version="0.1.12")
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            install_report = self.release_install_report(repo_root, ok=True)
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report):
+                    with patch("agentic_os.public_release_gate.release_install_smoke", return_value=install_report) as fake_install:
+                        report = public_release_gate(
+                            repo_root,
+                            release_install_source=".",
+                        )
+
+        self.assertTrue(report.ok)
+        fake_install.assert_called_once_with(source=".", ref="v0.1.12-public-alpha")
+        self.assertEqual("inferred", report.steps[2].details["ref_source"])
+
+    def test_public_release_gate_preserves_release_install_smoke_failure_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            failed_step = SimpleNamespace(
+                id="fetch_ref",
+                status="FAIL",
+                message="Command failed with exit code 128.",
+                command="git fetch --depth 1 origin refs/tags/v0.1.12-public-alpha",
+                path=str(repo_root),
+                stdout_tail=None,
+                stderr_tail="fatal: couldn't find remote ref",
+                next_action="Check that the release source and tag exist, then retry release-install-smoke.",
+            )
+            install_report = self.release_install_report(repo_root, ok=False, failed_step=failed_step)
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report):
+                    with patch("agentic_os.public_release_gate.release_install_smoke", return_value=install_report):
+                        report = public_release_gate(
+                            repo_root,
+                            from_ref="v0.1.10-public-alpha",
+                            release_install_source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+                            release_install_ref="v0.1.12-public-alpha",
+                        )
+
+        self.assertFalse(report.ok)
+        self.assertEqual("release_install_smoke", report.failed[0].id)
+        self.assertIn("fetch_ref", report.failed[0].message)
+        self.assertEqual(failed_step.next_action, report.failed[0].next_action)
+        self.assertEqual("fetch_ref", report.failed[0].details["steps"][-1]["id"])
+        self.assertEqual("fatal: couldn't find remote ref", report.failed[0].details["steps"][-1]["stderr_tail"])
+
+    def test_public_release_gate_cli_includes_release_install_smoke_json_when_requested(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            install_report = self.release_install_report(repo_root, ok=True)
+            stdout = io.StringIO()
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report):
+                    with patch("agentic_os.public_release_gate.release_install_smoke", return_value=install_report):
+                        code = main(
+                            [
+                                "public-release-gate",
+                                "--repo-root",
+                                str(repo_root),
+                                "--from-ref",
+                                "v0.1.10-public-alpha",
+                                "--release-install-source",
+                                "https://github.com/Dai202703/agentic-os-public-alpha.git",
+                                "--release-install-ref",
+                                "v0.1.12-public-alpha",
+                                "--json",
+                            ],
+                            stdout=stdout,
+                        )
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(0, code)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(3, payload["passed_count"])
+        self.assertEqual("release_install_smoke", payload["steps"][2]["id"])
+        self.assertEqual("verify_installed_version", payload["steps"][2]["details"]["steps"][1]["id"])
+
     def test_public_release_gate_cli_preserves_json_when_release_check_raises(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir)
@@ -292,6 +407,59 @@ class PublicReleaseGateTests(unittest.TestCase):
         return SimpleNamespace(
             ok=ok,
             repo_root=repo_root.resolve(),
+            steps=passed_steps + failed_steps,
+            passed=passed_steps,
+            failed=failed_steps,
+        )
+
+    def release_install_report(
+        self,
+        repo_root: Path,
+        *,
+        ok: bool,
+        failed_step: object | None = None,
+    ) -> SimpleNamespace:
+        passed_steps = [
+            SimpleNamespace(
+                id="fetch_ref",
+                status="PASS",
+                message="Fetched refs/tags/v0.1.12-public-alpha.",
+                command="git fetch --depth 1 origin refs/tags/v0.1.12-public-alpha",
+                path=str(repo_root),
+                stdout_tail=None,
+                stderr_tail=None,
+                next_action=None,
+            ),
+            SimpleNamespace(
+                id="verify_installed_version",
+                status="PASS",
+                message="Installed command reports v0.1.12-public-alpha.",
+                command="aos version --json",
+                path=str(repo_root),
+                stdout_tail=None,
+                stderr_tail=None,
+                next_action=None,
+            ),
+        ]
+        failed_steps = [failed_step] if failed_step else []
+        return SimpleNamespace(
+            ok=ok,
+            source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+            ref="v0.1.12-public-alpha",
+            normalized_ref="refs/tags/v0.1.12-public-alpha",
+            expected_tag="v0.1.12-public-alpha",
+            clone_root=repo_root / "clone",
+            install_dir=repo_root / "install/bin",
+            expected_version={
+                "version": "0.1.12",
+                "release_channel": "public-alpha",
+                "release_tag": "v0.1.12-public-alpha",
+            },
+            installed_version={
+                "version": "0.1.12",
+                "release_channel": "public-alpha",
+                "release_tag": "v0.1.12-public-alpha",
+            },
             steps=passed_steps + failed_steps,
             passed=passed_steps,
             failed=failed_steps,
