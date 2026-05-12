@@ -95,16 +95,26 @@ If there was no previous command, rollback removes the symlink that was created 
 Before publishing a public alpha after the first release, verify update and rollback across release refs:
 
 ```bash
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.3-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json
 ```
 
 For a stricter release gate, run the integrated opt-in check:
 
 ```bash
-aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.3-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.4-public-alpha --to-ref HEAD --json
 ```
 
 The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
+
+## Release Manifest
+
+`aos public-export` writes `public-release-manifest.json` with the exported file list and SHA-256 checksum for each file:
+
+```bash
+aos public-export --repo-root . --output /tmp/agentic-os-public --json
+```
+
+Run `aos release-check --repo-root . --json` from the exported package or public repository to verify the manifest. The `release_manifest` step fails if a release file is missing, unlisted, or has a stale checksum.
 
 ## Project Verification
 

@@ -8,6 +8,7 @@ import tempfile
 from typing import Sequence
 
 from .distribution import distribution_check
+from .release_manifest import release_manifest_check
 from .release_upgrade_smoke import release_upgrade_smoke
 from .version import get_release_tag
 
@@ -71,9 +72,12 @@ def release_check(
             root,
             "Repo-contained readiness smoke passed.",
         ),
-        _distribution_step(root),
-        _install_manager_dry_run_step(root, launcher_path),
     ]
+    distribution_step = _distribution_step(root)
+    steps.append(distribution_step)
+    if distribution_step.status == "PASS":
+        steps.append(_release_manifest_step(root))
+    steps.append(_install_manager_dry_run_step(root, launcher_path))
     if upgrade_smoke:
         steps.append(_release_upgrade_smoke_step(root, from_ref, to_ref))
     return ReleaseCheckReport(root, steps)
@@ -124,6 +128,23 @@ def _distribution_step(root: Path) -> ReleaseCheckStep:
         status="FAIL",
         message=f"Distribution privacy gate failed with {len(report.issues)} findings.",
         path=str(root),
+    )
+
+
+def _release_manifest_step(root: Path) -> ReleaseCheckStep:
+    report = release_manifest_check(root)
+    if report.ok:
+        return ReleaseCheckStep(
+            id="release_manifest",
+            status="PASS",
+            message=f"Release manifest checksum gate passed; {report.files_count} files verified.",
+            path=str(report.manifest_path),
+        )
+    return ReleaseCheckStep(
+        id="release_manifest",
+        status="FAIL",
+        message=f"Release manifest checksum gate failed with {len(report.issues)} findings.",
+        path=str(report.manifest_path),
     )
 
 

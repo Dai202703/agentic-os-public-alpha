@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.5-public-alpha
+
+- Added SHA-256 checksums to `public-release-manifest.json`.
+- Added a release manifest checksum gate to `aos release-check`.
+
 ## v0.1.4-public-alpha
 
 - Added `aos release-upgrade-smoke` to verify install, update, rollback, and version traceability across release refs.

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -26,6 +27,7 @@ EXCLUDED_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
 class PublicExportManifest:
     output_root: Path
     files: list[str]
+    checksums: dict[str, str]
 
     @property
     def ok(self) -> bool:
@@ -62,8 +64,9 @@ def public_export(
             shutil.copy2(source_path, target_path)
 
     files = _regular_files(output)
-    _write_manifest(output, files)
-    return PublicExportManifest(output, files)
+    checksums = _file_checksums(output, files)
+    _write_manifest(output, files, checksums)
+    return PublicExportManifest(output, files, checksums)
 
 
 def render_public_export_json(manifest: PublicExportManifest) -> str:
@@ -72,6 +75,7 @@ def render_public_export_json(manifest: PublicExportManifest) -> str:
         "output_root": str(manifest.output_root),
         "files_count": len(manifest.files),
         "files": manifest.files,
+        "sha256": manifest.checksums,
     }
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
@@ -88,8 +92,15 @@ def _regular_files(root: Path) -> list[str]:
     )
 
 
-def _write_manifest(output: Path, files: list[str]) -> None:
+def _file_checksums(root: Path, files: list[str]) -> dict[str, str]:
+    return {
+        relative: hashlib.sha256((root / relative).read_bytes()).hexdigest()
+        for relative in files
+    }
+
+
+def _write_manifest(output: Path, files: list[str], checksums: dict[str, str]) -> None:
     (output / "public-release-manifest.json").write_text(
-        json.dumps({"files": files}, indent=2, sort_keys=True) + "\n",
+        json.dumps({"files": files, "sha256": checksums}, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )

@@ -49,8 +49,9 @@ Public package publication requires the additional public release policy in `doc
 - `aos distribution-check --repo-root . --json` returns `"ok": true`.
 - `aos public-audit --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --json` returns `"ok": true`.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.3-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.4-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
+- The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.
 - `docs/operations.md` covers install, update, rollback, status, and post-change verification.
 - No private files are staged or exported.
@@ -68,6 +69,7 @@ This is the minimum gate before handing the standalone repository to another mac
 - Standalone package privacy gate passes with `aos distribution-check --repo-root . --json`.
 - Public release audit passes with `aos public-audit --repo-root . --json`.
 - Integrated pre-release gate passes with `aos release-check --repo-root . --json`.
+- The integrated pre-release gate includes release manifest checksum verification.
 - A linked validation project passes `aos onboarding-check --project-root . --json`.
 - Generated provider files have no private paths, API keys, private memory references, or client-sensitive details.
 - The receiver can reproduce install, doctor, compile, memory, and rollback steps without another user's live `~/.agentic-os` contents.

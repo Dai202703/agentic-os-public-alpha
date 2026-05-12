@@ -36,7 +36,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos version", content)
         self.assertIn("python3 -m unittest discover -s tests -v", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.3-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("public-release-manifest.json", content)
+        self.assertIn("SHA-256", content)
 
     def test_distribution_doc_includes_handoff_verification_gate(self):
         content = (self.repo_root / "docs/distribution.md").read_text(encoding="utf-8")
@@ -46,7 +48,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("GitHub Actions test workflow passes", content)
         self.assertIn("aos distribution-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --json", content)
-        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.3-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("release manifest checksum", content)
         self.assertIn("aos public-audit --repo-root . --json", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
 
@@ -78,13 +81,15 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos version", content)
         self.assertIn("aos doctor --summary", content)
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.3-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.4-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("public-release-manifest.json", content)
 
     def test_public_release_doc_documents_version_traceability(self):
         content = (self.repo_root / "docs/public-release.md").read_text(encoding="utf-8")
 
         self.assertIn("aos version", content)
+        self.assertIn("v0.1.5-public-alpha", content)
         self.assertIn("v0.1.4-public-alpha", content)
-        self.assertIn("v0.1.3-public-alpha", content)
         self.assertIn("version_consistency", content)
+        self.assertIn("release_manifest", content)
         self.assertIn("release-upgrade-smoke", content)

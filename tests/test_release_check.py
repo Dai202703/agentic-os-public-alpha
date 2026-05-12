@@ -1,4 +1,5 @@
 import io
+import hashlib
 import json
 from types import SimpleNamespace
 import subprocess
@@ -31,6 +32,7 @@ class ReleaseCheckTests(unittest.TestCase):
                     "unit_tests",
                     "readiness_smoke",
                     "distribution_check",
+                    "release_manifest",
                     "install_manager_dry_run",
                 ],
                 [step.id for step in report.steps],
@@ -42,6 +44,20 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertIn("manage_global_aos.py update", command_text)
             self.assertIn("manage_global_aos.py rollback", command_text)
 
+    def test_release_check_fails_when_release_manifest_is_stale(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+            (repo_root / "README.md").write_text("Changed after manifest\n", encoding="utf-8")
+
+            with patch("agentic_os.release_check.subprocess.run") as fake_run:
+                fake_run.return_value = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
+                report = release_check(repo_root)
+
+            self.assertFalse(report.ok)
+            failed = [step for step in report.steps if step.status == "FAIL"]
+            self.assertEqual(["release_manifest"], [step.id for step in failed])
+            self.assertIn("1 findings", failed[0].message)
+
     def test_release_check_can_include_upgrade_smoke_when_requested(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_release_repo(Path(temp_dir))
@@ -52,8 +68,8 @@ class ReleaseCheckTests(unittest.TestCase):
             fake_report = SimpleNamespace(
                 ok=True,
                 failed=[],
-                previous_version={"release_tag": "v0.1.3-public-alpha"},
-                current_version={"release_tag": "v0.1.4-public-alpha"},
+                previous_version={"release_tag": "v0.1.4-public-alpha"},
+                current_version={"release_tag": "v0.1.5-public-alpha"},
             )
 
             with patch("agentic_os.release_check.subprocess.run", side_effect=fake_run):
@@ -61,17 +77,17 @@ class ReleaseCheckTests(unittest.TestCase):
                     report = release_check(
                         repo_root,
                         upgrade_smoke=True,
-                        from_ref="v0.1.3-public-alpha",
+                        from_ref="v0.1.4-public-alpha",
                         to_ref="HEAD",
                     )
 
             self.assertTrue(report.ok)
             self.assertEqual("release_upgrade_smoke", report.steps[-1].id)
-            self.assertIn("v0.1.3-public-alpha", report.steps[-1].message)
             self.assertIn("v0.1.4-public-alpha", report.steps[-1].message)
+            self.assertIn("v0.1.5-public-alpha", report.steps[-1].message)
             fake_smoke.assert_called_once_with(
                 repo_root.resolve(),
-                from_ref="v0.1.3-public-alpha",
+                from_ref="v0.1.4-public-alpha",
                 to_ref="HEAD",
             )
 
@@ -96,6 +112,7 @@ class ReleaseCheckTests(unittest.TestCase):
                 "# Changelog\n\n## v9.9.9-public-alpha\n\n- Drifted release.\n",
                 encoding="utf-8",
             )
+            self.write_manifest(repo_root)
 
             with patch("agentic_os.release_check.subprocess.run") as fake_run:
                 fake_run.return_value = subprocess.CompletedProcess([], 0, stdout="ok\n", stderr="")
@@ -104,7 +121,7 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertFalse(report.ok)
             failed = [step for step in report.steps if step.status == "FAIL"]
             self.assertEqual(["version_consistency"], [step.id for step in failed])
-            self.assertIn("expected v0.1.4-public-alpha", failed[0].message)
+            self.assertIn("expected v0.1.5-public-alpha", failed[0].message)
 
     def test_release_check_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -118,7 +135,7 @@ class ReleaseCheckTests(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(0, code)
             self.assertTrue(payload["ok"])
-            self.assertEqual(5, payload["passed_count"])
+            self.assertEqual(6, payload["passed_count"])
             self.assertEqual(0, payload["failed_count"])
             self.assertEqual(
                 [
@@ -126,6 +143,7 @@ class ReleaseCheckTests(unittest.TestCase):
                     "unit_tests",
                     "readiness_smoke",
                     "distribution_check",
+                    "release_manifest",
                     "install_manager_dry_run",
                 ],
                 [step["id"] for step in payload["steps"]],
@@ -134,15 +152,15 @@ class ReleaseCheckTests(unittest.TestCase):
     def create_release_repo(self, repo_root: Path) -> Path:
         (repo_root / "src/agentic_os").mkdir(parents=True)
         (repo_root / "src/agentic_os/version.py").write_text(
-            'VERSION = "0.1.4"\nRELEASE_CHANNEL = "public-alpha"\n',
+            'VERSION = "0.1.5"\nRELEASE_CHANNEL = "public-alpha"\n',
             encoding="utf-8",
         )
         (repo_root / "pyproject.toml").write_text(
-            '[project]\nname = "agentic-os"\nversion = "0.1.4"\n',
+            '[project]\nname = "agentic-os"\nversion = "0.1.5"\n',
             encoding="utf-8",
         )
         (repo_root / "CHANGELOG.md").write_text(
-            "# Changelog\n\n## v0.1.4-public-alpha\n\n- Release upgrade smoke.\n",
+            "# Changelog\n\n## v0.1.5-public-alpha\n\n- Release manifest checksums.\n",
             encoding="utf-8",
         )
         (repo_root / "bin").mkdir()
@@ -155,7 +173,23 @@ class ReleaseCheckTests(unittest.TestCase):
         (repo_root / "tests").mkdir()
         (repo_root / "tests/test_placeholder.py").write_text("import unittest\n", encoding="utf-8")
         (repo_root / "README.md").write_text("Shareable package\n", encoding="utf-8")
+        self.write_manifest(repo_root)
         return repo_root
+
+    def write_manifest(self, repo_root: Path) -> None:
+        files = sorted(
+            path.relative_to(repo_root).as_posix()
+            for path in repo_root.rglob("*")
+            if path.is_file() and path.name != "public-release-manifest.json"
+        )
+        checksums = {
+            relative: hashlib.sha256((repo_root / relative).read_bytes()).hexdigest()
+            for relative in files
+        }
+        (repo_root / "public-release-manifest.json").write_text(
+            json.dumps({"files": files, "sha256": checksums}, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
 
 if __name__ == "__main__":

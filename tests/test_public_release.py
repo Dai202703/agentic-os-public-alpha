@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import subprocess
 import tempfile
 import unittest
@@ -62,6 +63,11 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertIn(".gitignore", manifest.files)
             self.assertIn("README.md", manifest.files)
             self.assertIn("src/agentic_os/cli.py", manifest.files)
+            manifest_payload = json.loads((output / "public-release-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest.files, manifest_payload["files"])
+            self.assertEqual(set(manifest.files), set(manifest.checksums))
+            self.assertEqual(set(manifest.files), set(manifest_payload["sha256"]))
+            self.assertRegex(manifest_payload["sha256"]["README.md"], re.compile(r"^[0-9a-f]{64}$"))
 
     def test_public_release_cli_outputs_json_for_audit_and_export(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -83,6 +89,7 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertEqual(0, export_code)
             self.assertTrue(export_payload["ok"])
             self.assertEqual(str(output.resolve()), export_payload["output_root"])
+            self.assertEqual(set(export_payload["files"]), set(export_payload["sha256"]))
 
     def create_source_repo(self, repo_root: Path) -> Path:
         (repo_root / "src/agentic_os").mkdir(parents=True)
