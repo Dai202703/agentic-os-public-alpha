@@ -51,7 +51,7 @@ Public package publication requires the additional public release policy in `doc
 - `aos release-check --repo-root . --json` returns `"ok": true`.
 - `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior for a public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.6-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.7-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
 - The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.
@@ -70,6 +70,7 @@ This is the minimum gate before handing the standalone repository to another mac
 - Install wrapper passes with `sh scripts/install.sh` or with `AOS_INSTALL_DIR` pointed at a temporary bin directory.
 - Standalone package privacy gate passes with `aos distribution-check --repo-root . --json`.
 - Public release audit passes with `aos public-audit --repo-root . --json`.
+- Private development or standalone CI repositories may use `aos public-audit --repo-root . --tree-only --json` only when their git history is not intended for publication.
 - Integrated pre-release gate passes with `aos release-check --repo-root . --json`.
 - The integrated pre-release gate includes release manifest checksum verification.
 - Fresh user smoke passes with `aos fresh-user-smoke --repo-root . --json`.
@@ -100,4 +101,4 @@ PYTHONPATH=src python3 -m agentic_os public-audit --repo-root . --json
 PYTHONPATH=src python3 -m agentic_os release-check --repo-root . --json
 ```
 
-Do not make a private working repository public unless the intended published history passes `public-audit`.
+Do not make a private working repository public unless the intended published history passes `public-audit`. The `--tree-only` mode is a development CI convenience, not a public release gate.

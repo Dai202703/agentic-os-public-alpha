@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.8-public-alpha
+
+- Added explicit `aos public-audit --tree-only` mode for current-tree public audit checks in development and standalone CI repositories.
+- Updated GitHub Actions to keep full git-history public audit on `Dai202703/agentic-os-public-alpha` while using tree-only audit for non-public repositories.
+
 ## v0.1.7-public-alpha
 
 - Added actionable `next_action` diagnostics to `aos fresh-user-smoke` failure reports.

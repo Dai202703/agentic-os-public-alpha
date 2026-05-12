@@ -38,7 +38,7 @@ class PublicAuditReport:
         return not self.findings
 
 
-def public_audit(repo_root: str | Path = ".") -> PublicAuditReport:
+def public_audit(repo_root: str | Path = ".", include_history: bool = True) -> PublicAuditReport:
     root = Path(repo_root).expanduser().resolve()
     findings: list[PublicAuditFinding] = []
 
@@ -54,14 +54,16 @@ def public_audit(repo_root: str | Path = ".") -> PublicAuditReport:
         for issue in tree_report.issues
     )
 
-    history_findings, history_scanned = _history_findings(root)
-    findings.extend(history_findings)
+    history_scanned = False
+    if include_history:
+        history_findings, history_scanned = _history_findings(root)
+        findings.extend(history_findings)
     return PublicAuditReport(root, findings, history_scanned)
 
 
 def render_public_audit_summary(report: PublicAuditReport) -> str:
     status = "ok" if report.ok else "issues"
-    history = "history scanned" if report.history_scanned else "history unavailable"
+    history = "history scanned" if report.history_scanned else "history not scanned"
     return f"AOS public-audit {status}: {len(report.findings)} findings, {history}\n"
 
 

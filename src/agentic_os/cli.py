@@ -122,6 +122,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Scan the current tree and git history for public-release privacy risks.",
     )
     public_audit_parser.add_argument("--repo-root", default=".")
+    public_audit_parser.add_argument(
+        "--tree-only",
+        action="store_true",
+        help="Scan only the current tree and skip git history.",
+    )
     public_audit_parser.add_argument("--json", action="store_true", dest="as_json")
     public_export_parser = subparsers.add_parser(
         "public-export",
@@ -299,7 +304,7 @@ def main(
             return 0 if report.ok else 1
 
         if args.command == "public-audit":
-            report = public_audit(args.repo_root)
+            report = public_audit(args.repo_root, include_history=not args.tree_only)
             if args.as_json:
                 stdout.write(render_public_audit_json(report))
             else:

@@ -32,7 +32,12 @@ jobs:
         run: python3 -m agentic_os distribution-check --repo-root . --json
 
       - name: Run public audit gate
-        run: python3 -m agentic_os public-audit --repo-root . --json
+        run: |
+          if [ "${{ github.repository }}" = "Dai202703/agentic-os-public-alpha" ]; then
+            python3 -m agentic_os public-audit --repo-root . --json
+          else
+            python3 -m agentic_os public-audit --repo-root . --tree-only --json
+          fi
 
       - name: Run fresh user smoke
         run: python3 -m agentic_os fresh-user-smoke --repo-root . --json

@@ -14,23 +14,23 @@ from agentic_os.public_export import public_export
 class PublicReleaseTests(unittest.TestCase):
     def test_public_audit_fails_on_private_data_in_git_history(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            repo_root = Path(temp_dir)
-            self.git(repo_root, "init")
-            (repo_root / "README.md").write_text(
-                "Private path: /Users/dai/.agentic-os/memory/sessions/private.md\n",
-                encoding="utf-8",
-            )
-            self.git(repo_root, "add", "README.md")
-            self.git(repo_root, "commit", "-m", "add private readme")
-            (repo_root / "README.md").write_text("Public readme\n", encoding="utf-8")
-            self.git(repo_root, "add", "README.md")
-            self.git(repo_root, "commit", "-m", "clean readme")
+            repo_root = self.create_repo_with_private_history(Path(temp_dir))
 
             report = public_audit(repo_root)
 
             self.assertFalse(report.ok)
             self.assertEqual(["history"], [finding.source for finding in report.findings])
             self.assertEqual(["LOCAL_PATH_PATTERN"], [finding.code for finding in report.findings])
+
+    def test_public_audit_tree_only_passes_when_history_has_private_data(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_repo_with_private_history(Path(temp_dir))
+
+            report = public_audit(repo_root, include_history=False)
+
+            self.assertTrue(report.ok)
+            self.assertFalse(report.history_scanned)
+            self.assertEqual([], report.findings)
 
     def test_public_audit_passes_when_tree_and_history_are_clean(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -91,6 +91,22 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertEqual(str(output.resolve()), export_payload["output_root"])
             self.assertEqual(set(export_payload["files"]), set(export_payload["sha256"]))
 
+    def test_public_audit_cli_tree_only_skips_history_scan(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_repo_with_private_history(Path(temp_dir))
+            audit_stdout = io.StringIO()
+
+            audit_code = main(
+                ["public-audit", "--repo-root", str(repo_root), "--tree-only", "--json"],
+                stdout=audit_stdout,
+            )
+
+            audit_payload = json.loads(audit_stdout.getvalue())
+            self.assertEqual(0, audit_code)
+            self.assertTrue(audit_payload["ok"])
+            self.assertFalse(audit_payload["history_scanned"])
+            self.assertEqual([], audit_payload["findings"])
+
     def create_source_repo(self, repo_root: Path) -> Path:
         (repo_root / "src/agentic_os").mkdir(parents=True)
         (repo_root / "src/agentic_os/cli.py").write_text("def main():\n    return 0\n", encoding="utf-8")
@@ -112,6 +128,19 @@ class PublicReleaseTests(unittest.TestCase):
         (repo_root / ".agentic-os").mkdir()
         (repo_root / ".agentic-os/project.yaml").write_text("id: private\n", encoding="utf-8")
         (repo_root / "AGENTS.md").write_text("# generated\n", encoding="utf-8")
+        return repo_root
+
+    def create_repo_with_private_history(self, repo_root: Path) -> Path:
+        self.git(repo_root, "init")
+        (repo_root / "README.md").write_text(
+            "Private path: /Users/dai/.agentic-os/memory/sessions/private.md\n",
+            encoding="utf-8",
+        )
+        self.git(repo_root, "add", "README.md")
+        self.git(repo_root, "commit", "-m", "add private readme")
+        (repo_root / "README.md").write_text("Public readme\n", encoding="utf-8")
+        self.git(repo_root, "add", "README.md")
+        self.git(repo_root, "commit", "-m", "clean readme")
         return repo_root
 
     def git(self, cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
