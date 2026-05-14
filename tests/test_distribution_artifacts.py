@@ -29,6 +29,11 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("${GITHUB_REF_NAME}", content)
         self.assertIn("matrix.os == 'ubuntu-latest'", content)
         self.assertIn("matrix.python-version == '3.13'", content)
+        self.assertIn("windows-install:", content)
+        self.assertIn("runs-on: windows-latest", content)
+        self.assertIn("shell: pwsh", content)
+        self.assertIn("python scripts/windows_install_smoke.py --repo-root .", content)
+        self.assertIn(r"$env:RUNNER_TEMP\aos-bin", content)
 
     def test_github_actions_use_node24_compatible_actions(self):
         workflow = self.repo_root / ".github/workflows/test.yml"
@@ -46,6 +51,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("img.shields.io/github/v/release/Dai202703/agentic-os-public-alpha", content)
         self.assertIn("img.shields.io/github/license/Dai202703/agentic-os-public-alpha", content)
         self.assertIn("blank-canvas", content)
+        self.assertIn("## AOS At A Glance", content)
+        self.assertIn("docs/assets/aos-public-alpha-flow.svg", content)
+        self.assertLess(content.index("## AOS At A Glance"), content.index("## What It Does"))
         self.assertIn("## Five-Minute Start", content)
         self.assertIn("aos init", content)
         self.assertIn("aos link-project --project-root /tmp/aos-first-project", content)
@@ -69,6 +77,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("## Standalone Install", content)
         self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
         self.assertIn("scripts/install.sh", content)
+        self.assertIn("scripts/install.ps1", content)
+        self.assertIn("PowerShell", content)
+        self.assertIn(r"powershell -ExecutionPolicy Bypass -File scripts\install.ps1", content)
         self.assertIn("AOS_INSTALL_DIR", content)
         self.assertIn("aos version", content)
         self.assertIn("python3 -m unittest discover -s tests -v", content)
@@ -108,8 +119,11 @@ class DistributionArtifactsTests(unittest.TestCase):
 
     def test_public_release_docs_and_policy_files_exist(self):
         required = [
+            "docs/assets/aos-public-alpha-flow.svg",
             "docs/install-for-beginners.md",
             "docs/public-release.md",
+            "scripts/install.ps1",
+            "scripts/windows_install_smoke.py",
             "SECURITY.md",
             "CONTRIBUTING.md",
             "LICENSE",
@@ -126,15 +140,82 @@ class DistributionArtifactsTests(unittest.TestCase):
         content = guide.read_text(encoding="utf-8")
         self.assertIn("# Install AOS For Beginners", content)
         self.assertIn("No private data is uploaded", content)
-        self.assertIn("macOS, Linux, or Windows through WSL", content)
-        self.assertIn("native Windows PowerShell installer is a separate future step", content)
+        self.assertIn("macOS, Linux, Windows through WSL, or native Windows PowerShell", content)
+        self.assertIn(r"powershell -ExecutionPolicy Bypass -File scripts\install.ps1", content)
+        self.assertIn("native Windows PowerShell installer", content)
         self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
         self.assertIn("sh scripts/install.sh", content)
+        self.assertIn("scripts/install.ps1", content)
         self.assertIn("aos doctor --summary", content)
         self.assertIn("aos link-project", content)
         self.assertIn("aos compile codex", content)
         self.assertIn("How To Know It Worked", content)
         self.assertIn("Common Problems", content)
+
+    def test_windows_powershell_installer_is_public_and_safe(self):
+        installer = self.repo_root / "scripts/install.ps1"
+
+        self.assertTrue(installer.is_file())
+        content = installer.read_text(encoding="utf-8")
+        self.assertIn("[CmdletBinding()]", content)
+        self.assertIn("AOS_INSTALL_DIR", content)
+        self.assertIn("AOS_INSTALL_SKIP_CHECKS", content)
+        self.assertIn("aos.cmd", content)
+        self.assertIn("aos.ps1", content)
+        self.assertIn("readiness_smoke.py", content)
+        self.assertIn("AddToUserPath", content)
+        self.assertIn("Rollback", content)
+        self.assertIn(".aos-install-state.json", content)
+        self.assertIn("Move-Item", content)
+        self.assertIn("Refusing to replace directory", content)
+        self.assertIn("Test-AosLauncherTargets", content)
+        self.assertIn("Windows-compatible unittest gate", content)
+        self.assertIn("tests.test_release_manifest", content)
+        self.assertIn("Remove-Item -LiteralPath $stateFile", content)
+        self.assertLess(
+            content.index("Recorded backup is missing"),
+            content.index("Remove-Item -LiteralPath $ActivePath -Force"),
+        )
+        self.assertIn("py\" -PrefixArgs @(\"-3\")", content)
+        self.assertIn("No private data is uploaded", content)
+        self.assertIn("aos init", content)
+
+    def test_windows_install_smoke_script_is_public_and_actionable(self):
+        smoke = self.repo_root / "scripts/windows_install_smoke.py"
+
+        self.assertTrue(smoke.is_file())
+        content = smoke.read_text(encoding="utf-8")
+        self.assertIn("install.ps1", content)
+        self.assertIn("aos.cmd", content)
+        self.assertIn("aos.ps1", content)
+        self.assertIn("-Rollback", content)
+        self.assertIn("cmd.exe", content)
+        self.assertIn("ExecutionPolicy", content)
+        self.assertIn("state_removed", content)
+
+    def test_readme_embeds_visual_quickstart_asset(self):
+        asset = self.repo_root / "docs/assets/aos-public-alpha-flow.svg"
+        readme = (self.repo_root / "README.md").read_text(encoding="utf-8")
+
+        self.assertTrue(asset.is_file())
+        svg = asset.read_text(encoding="utf-8")
+        self.assertIn("<svg", svg)
+        self.assertIn("<title>", svg)
+        self.assertIn("<desc>", svg)
+        self.assertIn("Agentic OS", svg)
+        self.assertIn("aos init", svg)
+        self.assertIn("aos compile codex", svg)
+        self.assertIn("AGENTS.md", svg)
+        self.assertIn("CLAUDE.md", svg)
+        self.assertIn("GEMINI.md", svg)
+        self.assertIn("ChatGPT", svg)
+        self.assertNotIn("<script", svg)
+        self.assertNotIn("<image", svg)
+        self.assertNotIn("http://", svg)
+        self.assertNotIn("https://", svg)
+        self.assertNotIn("data:", svg)
+        self.assertNotIn("/Users/", svg)
+        self.assertIn("![Agentic OS flow: private local categories and memory compile into provider instruction files](docs/assets/aos-public-alpha-flow.svg)", readme)
 
     def test_operations_doc_documents_install_update_and_rollback(self):
         operations = self.repo_root / "docs/operations.md"
@@ -143,6 +224,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         content = operations.read_text(encoding="utf-8")
         self.assertIn("## Install", content)
         self.assertIn("scripts/install.sh", content)
+        self.assertIn("scripts/install.ps1", content)
+        self.assertIn("scripts/windows_install_smoke.py", content)
         self.assertIn("AOS_INSTALL_SKIP_CHECKS", content)
         self.assertIn("AOS_INSTALL_LAUNCHER", content)
         self.assertIn("## Update", content)
@@ -150,6 +233,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("scripts/manage_global_aos.py install", content)
         self.assertIn("scripts/manage_global_aos.py update", content)
         self.assertIn("scripts/manage_global_aos.py rollback", content)
+        self.assertIn(r"powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Rollback", content)
         self.assertIn("aos version", content)
         self.assertIn("aos doctor --summary", content)
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)

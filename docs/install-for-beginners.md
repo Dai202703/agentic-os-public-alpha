@@ -22,7 +22,7 @@ You need:
 - Python 3
 - Internet access for the initial `git clone`
 
-This guide currently covers macOS, Linux, or Windows through WSL. A native Windows PowerShell installer is a separate future step.
+This guide covers macOS, Linux, Windows through WSL, or native Windows PowerShell.
 
 On macOS, open Terminal. If `git --version` opens an Apple developer tools prompt, complete that prompt first. On Linux, install Git and Python 3 with your system package manager if these commands are missing.
 
@@ -46,15 +46,29 @@ cd agentic-os-public-alpha
 
 ## Step 2: Run The Installer
 
-Run:
+macOS, Linux, or Windows through WSL:
 
 ```bash
 sh scripts/install.sh
 ```
 
-The installer runs the test suite, runs an isolated readiness check, installs `aos` under `~/.local/bin`, prints `aos version`, and verifies the installed command with a temporary AOS home. It does not initialize your live private AOS home.
+Native Windows PowerShell. This uses the `scripts/install.ps1` installer file:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
+The native Windows PowerShell installer creates `aos.cmd` and `aos.ps1` launchers. By default it installs under your user app-data folder when available. It prints PATH guidance and only updates your User PATH when you run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -AddToUserPath
+```
+
+The installer runs the test suite, runs an isolated readiness check, prints `aos version`, and verifies the installed command with a temporary AOS home. It does not initialize your live private AOS home.
 
 If your terminal says `aos: command not found` after install, close and reopen Terminal. If it still fails, check whether `~/.local/bin` is on your `PATH`.
+
+If native Windows PowerShell says `aos` is not recognized after install, open a new PowerShell window. If you did not use `-AddToUserPath`, either run the generated `aos.cmd` from the install folder shown by the installer or add that install folder to your User PATH.
 
 ## Step 3: Create Your Private AOS Home
 
@@ -191,6 +205,12 @@ Rollback:
 
 ```bash
 python3 scripts/manage_global_aos.py rollback --install-dir ~/.local/bin
+```
+
+Native Windows PowerShell rollback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Rollback
 ```
 
 Uninstall the command:

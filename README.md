@@ -10,6 +10,10 @@ The core idea is simple: choose the categories that match your work, save the co
 
 This repository is prepared as a public alpha. The default design keeps private identity, project memory, client context, API keys, and generated provider outputs outside the shareable source package.
 
+## AOS At A Glance
+
+![Agentic OS flow: private local categories and memory compile into provider instruction files](docs/assets/aos-public-alpha-flow.svg)
+
 ## What It Does
 
 - Initializes a local Agentic OS home, normally `~/.agentic-os`
@@ -146,15 +150,42 @@ Clone the public alpha repository and run the verified installer:
 ```bash
 git clone https://github.com/Dai202703/agentic-os-public-alpha.git
 cd agentic-os-public-alpha
+```
+
+macOS, Linux, or Windows through WSL:
+
+```bash
 sh scripts/install.sh
 ```
 
+Native Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
 `scripts/install.sh` runs the test suite, runs the repo-contained readiness smoke, installs `bin/aos` as a symlink under `~/.local/bin`, prints `aos version`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into your live `~/.agentic-os` home.
+
+`scripts/install.ps1` provides the native Windows PowerShell installer. It creates `aos.cmd` and `aos.ps1` launchers, runs Windows-compatible checks, and prints PATH guidance. By default it installs under your user app-data folder when available. It only changes the User PATH when you pass `-AddToUserPath`.
+
+CI also runs `scripts/windows_install_smoke.py` on `windows-latest` to verify the PowerShell installer, both generated launchers, version output, and rollback.
 
 Use `AOS_INSTALL_DIR` when you want to install somewhere else:
 
 ```bash
 AOS_INSTALL_DIR=/tmp/aos-bin sh scripts/install.sh
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:AOS_INSTALL_DIR="$env:TEMP\aos-bin"; powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
+PowerShell rollback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Rollback
 ```
 
 For lower-level symlink-based installs, updates, and rollbacks:

@@ -54,6 +54,9 @@ class PublicReleaseTests(unittest.TestCase):
 
             self.assertTrue((output / ".gitignore").is_file())
             self.assertTrue((output / "README.md").is_file())
+            self.assertTrue((output / "docs/assets/aos-public-alpha-flow.svg").is_file())
+            self.assertTrue((output / "scripts/install.ps1").is_file())
+            self.assertTrue((output / "scripts/windows_install_smoke.py").is_file())
             self.assertTrue((output / "src/agentic_os/cli.py").is_file())
             self.assertTrue((output / "tests/test_cli.py").is_file())
             self.assertFalse((output / "src/agentic_os/__pycache__").exists())
@@ -62,12 +65,27 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertFalse((output / ".agentic-os").exists())
             self.assertIn(".gitignore", manifest.files)
             self.assertIn("README.md", manifest.files)
+            self.assertIn("docs/assets/aos-public-alpha-flow.svg", manifest.files)
+            self.assertIn("scripts/install.ps1", manifest.files)
+            self.assertIn("scripts/windows_install_smoke.py", manifest.files)
             self.assertIn("src/agentic_os/cli.py", manifest.files)
             manifest_payload = json.loads((output / "public-release-manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(manifest.files, manifest_payload["files"])
             self.assertEqual(set(manifest.files), set(manifest.checksums))
             self.assertEqual(set(manifest.files), set(manifest_payload["sha256"]))
             self.assertRegex(manifest_payload["sha256"]["README.md"], re.compile(r"^[0-9a-f]{64}$"))
+            self.assertRegex(
+                manifest_payload["sha256"]["docs/assets/aos-public-alpha-flow.svg"],
+                re.compile(r"^[0-9a-f]{64}$"),
+            )
+            self.assertRegex(
+                manifest_payload["sha256"]["scripts/install.ps1"],
+                re.compile(r"^[0-9a-f]{64}$"),
+            )
+            self.assertRegex(
+                manifest_payload["sha256"]["scripts/windows_install_smoke.py"],
+                re.compile(r"^[0-9a-f]{64}$"),
+            )
 
     def test_public_release_cli_outputs_json_for_audit_and_export(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -116,10 +134,16 @@ class PublicReleaseTests(unittest.TestCase):
         (repo_root / "tests/test_cli.py").write_text("import unittest\n", encoding="utf-8")
         (repo_root / "tests/__pycache__").mkdir()
         (repo_root / "tests/__pycache__/test_cli.cpython-311.pyc").write_bytes(b"cache")
-        (repo_root / "docs").mkdir()
+        (repo_root / "docs/assets").mkdir(parents=True)
+        (repo_root / "docs/assets/aos-public-alpha-flow.svg").write_text(
+            "<svg><title>AOS flow</title><desc>Public demo</desc></svg>\n",
+            encoding="utf-8",
+        )
         (repo_root / "docs/public-release.md").write_text("Public policy\n", encoding="utf-8")
         (repo_root / "scripts").mkdir()
         (repo_root / "scripts/readiness_smoke.py").write_text("#!/usr/bin/env python3\n", encoding="utf-8")
+        (repo_root / "scripts/install.ps1").write_text("[CmdletBinding()]\n", encoding="utf-8")
+        (repo_root / "scripts/windows_install_smoke.py").write_text("#!/usr/bin/env python3\n", encoding="utf-8")
         (repo_root / "bin").mkdir()
         (repo_root / "bin/aos").write_text("#!/usr/bin/env sh\n", encoding="utf-8")
         (repo_root / "README.md").write_text("Public readme\n", encoding="utf-8")

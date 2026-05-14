@@ -1,6 +1,6 @@
 # Agentic OS Operations
 
-Use this guide for local install, update, verification, and rollback of the global `aos` command. These steps manage only the command symlink. They do not copy private OS home files, memory, secrets, or project data.
+Use this guide for local install, update, verification, and rollback of the global `aos` command. On macOS, Linux, and WSL these steps manage the command symlink. On native Windows they manage `aos.cmd` and `aos.ps1` launchers. They do not copy private OS home files, memory, secrets, or project data.
 
 ## Preconditions
 
@@ -13,6 +13,12 @@ scripts/fresh_user_smoke.py --repo-root . --json
 ```
 
 Both commands must pass before changing a live global command.
+
+On native Windows, also run the PowerShell installer smoke:
+
+```powershell
+python scripts/windows_install_smoke.py --repo-root . --install-dir "$env:TEMP\aos-bin" --json
+```
 
 ## Status
 
@@ -31,16 +37,36 @@ If `aos doctor --summary` reports sandbox-only permission issues inside a restri
 
 For normal local usage, run the install wrapper:
 
+macOS, Linux, or Windows through WSL:
+
 ```bash
 sh scripts/install.sh
 ```
 
-The wrapper runs the unit suite, runs the repo-contained smoke check, links `bin/aos` into `~/.local/bin`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into the live `~/.agentic-os` home.
+Native Windows PowerShell. This uses the `scripts/install.ps1` installer file:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
+The macOS/Linux/WSL wrapper runs the unit suite, runs the repo-contained smoke check, links `bin/aos` into `~/.local/bin`, and verifies the installed command against a temporary OS home. It does not initialize or copy private data into the live `~/.agentic-os` home.
+
+The Windows PowerShell installer creates `aos.cmd` and `aos.ps1` launchers instead of a symlink. By default it installs under the user app-data folder when available. It prints PATH guidance and only updates the User PATH when `-AddToUserPath` is passed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -AddToUserPath
+```
 
 Set `AOS_INSTALL_DIR` to install the command somewhere else:
 
 ```bash
 AOS_INSTALL_DIR=/tmp/aos-bin sh scripts/install.sh
+```
+
+PowerShell equivalent:
+
+```powershell
+$env:AOS_INSTALL_DIR="$env:TEMP\aos-bin"; powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ```
 
 Set `AOS_INSTALL_SKIP_CHECKS=1` only in controlled tests or after a separate release gate has already passed:
@@ -95,7 +121,13 @@ aos version
 aos doctor --summary
 ```
 
-If there was no previous command, rollback removes the symlink that was created by the last install.
+PowerShell rollback for the native Windows launcher:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1 -Rollback
+```
+
+On macOS, Linux, and WSL, if there was no previous command, rollback removes the symlink that was created by the last install. On native Windows, rollback removes the `aos.cmd` and `aos.ps1` launchers created by the last install. If you used a custom Windows install directory, pass the same `-InstallDir` value or set the same `AOS_INSTALL_DIR` before rollback.
 
 ## Release Upgrade Smoke
 
