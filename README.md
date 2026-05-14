@@ -1,6 +1,12 @@
 # Agentic OS
 
-Agentic OS is a local-first command line toolkit for keeping reusable AI working context, memory, and provider instruction files outside any single AI vendor. It is designed to work with Codex, Claude Code, Gemini, ChatGPT, and future provider adapters through file-based templates.
+[![test](https://github.com/Dai202703/agentic-os-public-alpha/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Dai202703/agentic-os-public-alpha/actions/workflows/test.yml)
+[![release](https://img.shields.io/github/v/release/Dai202703/agentic-os-public-alpha?include_prereleases&label=release)](https://github.com/Dai202703/agentic-os-public-alpha/releases)
+[![license](https://img.shields.io/github/license/Dai202703/agentic-os-public-alpha)](LICENSE)
+
+Agentic OS is a local-first, blank-canvas context and memory system for AI-assisted work. It keeps reusable context, decisions, and provider instruction files outside any single AI vendor, so the same working setup can support Codex, Claude Code, Gemini, ChatGPT, and future provider adapters.
+
+The core idea is simple: choose the categories that match your work, save the context you want AI tools to remember, and compile that context into the provider file your tool already reads.
 
 This repository is prepared as a public alpha. The default design keeps private identity, project memory, client context, API keys, and generated provider outputs outside the shareable source package.
 
@@ -14,6 +20,97 @@ This repository is prepared as a public alpha. The default design keeps private 
 - Runs public-release audit, export, and release gates
 - Verifies first-user install, onboarding, and memory recovery in isolated temporary folders
 - Provides safe install, update, and rollback helpers for the global `aos` command
+
+## Five-Minute Start
+
+```bash
+git clone https://github.com/Dai202703/agentic-os-public-alpha.git
+cd agentic-os-public-alpha
+sh scripts/install.sh
+aos init
+mkdir -p /tmp/aos-first-project
+aos link-project --project-root /tmp/aos-first-project --id first-project --name "First Project" --provider codex
+aos memory add session --project-id first-project --title "First memory" --summary "Use AOS to keep reusable AI context outside one vendor."
+aos compile codex --project-root /tmp/aos-first-project
+```
+
+That flow installs `aos`, creates your private OS home, links one folder, saves one memory, and compiles a Codex `AGENTS.md` provider instruction file.
+
+You do not need to adopt a fixed workflow. AOS gives you a durable place to define your own categories: clients, cases, classes, books, repositories, experiments, campaigns, or anything else you repeatedly ask AI tools to understand.
+
+## Five Ways To Use AOS
+
+Each example below uses the same pattern: link a folder, record the important memory, then compile provider instructions before working with an AI assistant.
+
+### Writer
+
+Use AOS as a continuity layer for long-form writing.
+
+- Category to create: `book-draft`, `newsletter`, or `script-series`
+- Memory to save: audience, voice, outline decisions, rejected angles, unresolved edits
+- Provider output to compile: ChatGPT for drafting, Codex for repo-backed publishing workflows
+
+```bash
+aos link-project --project-root /tmp/aos-writer --id book-draft --name "Book Draft" --provider chatgpt --provider codex
+aos memory add session --project-id book-draft --title "Chapter direction" --summary "Keep chapters practical, example-led, and concise."
+aos compile chatgpt --project-root /tmp/aos-writer
+```
+
+### Researcher
+
+Use AOS to keep research trails reusable across papers, reports, and exploratory projects.
+
+- Category to create: `market-research`, `paper-review`, or `source-map`
+- Memory to save: hypotheses, source quality notes, open questions, synthesis decisions
+- Provider output to compile: Claude Code or ChatGPT for long-context review, Codex for structured data workflows
+
+```bash
+aos link-project --project-root /tmp/aos-research --id market-research --name "Market Research" --provider claude --provider chatgpt
+aos memory add session --project-id market-research --title "Source triage" --summary "Separate primary sources, analyst commentary, and unverified claims."
+aos compile claude --project-root /tmp/aos-research
+```
+
+### Student
+
+Use AOS as a study operating notebook that survives across classes and AI tools.
+
+- Category to create: `biology-101`, `exam-prep`, or `thesis-notes`
+- Memory to save: syllabus priorities, weak topics, instructor preferences, study plans
+- Provider output to compile: ChatGPT or Gemini for tutoring and review sessions
+
+```bash
+aos link-project --project-root /tmp/aos-study --id exam-prep --name "Exam Prep" --provider chatgpt --provider gemini
+aos memory add session --project-id exam-prep --title "Weak topics" --summary "Prioritize spaced repetition for cell signaling and genetics problems."
+aos compile gemini --project-root /tmp/aos-study
+```
+
+### Lawyer
+
+Use AOS to organize private matter context without publishing client-sensitive material.
+
+- Category to create: `matter-notes`, `contract-review`, or `case-research`
+- Memory to save: procedural posture, issue lists, research boundaries, drafting preferences
+- Provider output to compile: Claude Code or ChatGPT for private review workflows
+
+```bash
+aos link-project --project-root /tmp/aos-matter --id matter-notes --name "Matter Notes" --provider claude --provider chatgpt
+aos memory add session --project-id matter-notes --title "Review scope" --summary "Track open issues, cited authority, and non-public facts separately."
+aos compile chatgpt --project-root /tmp/aos-matter
+```
+
+### Developer
+
+Use AOS to make every AI coding session start with the same project rules and recent decisions.
+
+- Category to create: `product-mvp`, `infra-upgrade`, or `bug-bash`
+- Memory to save: architecture decisions, test commands, release risks, known constraints
+- Provider output to compile: Codex, Claude Code, Gemini, or ChatGPT depending on the tool you are using
+
+```bash
+aos link-project --project-root /tmp/aos-dev --id product-mvp --name "Product MVP" --provider codex --provider claude --provider gemini --provider chatgpt
+aos memory add session --project-id product-mvp --title "Release rule" --summary "Run targeted tests first, then full unittest before release."
+aos compile codex --project-root /tmp/aos-dev
+```
 
 ## Public Alpha Scope
 
