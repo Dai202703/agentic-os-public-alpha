@@ -91,11 +91,17 @@ def release_check(
 
 def render_release_check_summary(report: ReleaseCheckReport) -> str:
     status = "ok" if report.ok else "issues"
-    return (
+    summary = (
         f"AOS release-check {status}: "
         f"{len(report.passed)} passed, "
         f"{len(report.failed)} failed\n"
     )
+    if report.failed:
+        first_failure = report.failed[0]
+        summary += f"first_failure={first_failure.id}: {first_failure.message}\n"
+        if first_failure.next_action:
+            summary += f"next_action={first_failure.next_action}\n"
+    return summary
 
 
 def render_release_check_json(report: ReleaseCheckReport) -> str:

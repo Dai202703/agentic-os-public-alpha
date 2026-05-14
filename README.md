@@ -88,6 +88,14 @@ Run the linked project gate:
 aos onboarding-check --project-root /tmp/demo-project --json
 ```
 
+Record and recover memory:
+
+```bash
+aos memory add session --project-id demo --title "Demo Session" --summary "Linked demo project and compiled provider instructions."
+aos memory list --project-id demo
+aos memory search "compiled provider instructions" --project-id demo
+```
+
 For a linked current working directory:
 
 ```bash
@@ -95,6 +103,17 @@ aos onboarding-check --project-root . --json
 ```
 
 ## Release And Privacy Gates
+
+Recommended v0.1.14 release handoff:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+scripts/readiness_smoke.py --launcher bin/aos --json
+aos public-export --repo-root . --output /tmp/agentic-os-public --json
+cd /tmp/agentic-os-public
+PYTHONPATH=src python3 -m agentic_os public-release-gate --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
+```
 
 Run these from a clean standalone repository before publishing or handing the package to another user:
 
@@ -104,9 +123,9 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.11-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.13-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
 ```
 
 Use `aos public-audit --repo-root . --tree-only --json` only for private development or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
@@ -124,7 +143,7 @@ The gates check for generated provider outputs, live OS home folders, sensitive 
 `fresh-user-smoke` verifies an isolated install, temporary OS home, temporary project link, all four provider compiles, onboarding check, `memory add session`, filtered `memory list`, and `memory search` without touching the live OS home or global command. When it fails, JSON and summary output include the failed command, output tails, and a `next_action`.
 For release managers, `release-upgrade-smoke` verifies the previous public alpha can be installed, updated to the current ref, and rolled back in an isolated temporary install directory.
 `public-release-gate` is the canonical public release command. It runs full-history `public-audit` and strict `release-check` with manifest, fresh-user memory smoke, and upgrade smoke enabled. When `--from-ref` is omitted, it infers the previous public-alpha tag from git tags.
-After a public tag exists, `release-install-smoke` verifies the published source can be fetched by tag, installed into a temporary command path, and checked with `aos version --json`. Use it as a post-tag/public-source smoke, not as a replacement for the local pre-release gate.
+After a public tag exists, `release-install-smoke` verifies the published source can be fetched by tag, installed into a temporary command path, and checked with `aos version --json`. Add `--fresh-user-smoke` for the public handoff gate when you want the fetched tag to prove the full first-user workflow too. Use it as a post-tag/public-source smoke, not as a replacement for the local pre-release gate.
 
 ## Development
 

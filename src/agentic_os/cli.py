@@ -106,32 +106,40 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the full standalone AOS pre-release gate.",
     )
     release_check_parser.add_argument("--repo-root", default=".")
-    release_check_parser.add_argument("--launcher")
+    release_check_parser.add_argument("--launcher", help="Path to the aos launcher to verify. Defaults to <repo-root>/bin/aos.")
     release_check_parser.add_argument(
         "--skip-release-manifest",
         action="store_true",
         help="Skip the generated release manifest checksum gate.",
     )
-    release_check_parser.add_argument("--fresh-user-smoke", action="store_true")
-    release_check_parser.add_argument("--upgrade-smoke", action="store_true")
-    release_check_parser.add_argument("--from-ref")
-    release_check_parser.add_argument("--to-ref", default="HEAD")
-    release_check_parser.add_argument("--json", action="store_true", dest="as_json")
+    release_check_parser.add_argument(
+        "--fresh-user-smoke",
+        action="store_true",
+        help="Run the isolated first-user install, compile, onboarding, and memory smoke.",
+    )
+    release_check_parser.add_argument(
+        "--upgrade-smoke",
+        action="store_true",
+        help="Run install, update, and rollback smoke between --from-ref and --to-ref.",
+    )
+    release_check_parser.add_argument("--from-ref", help="Previous release ref used for upgrade/rollback smoke.")
+    release_check_parser.add_argument("--to-ref", default="HEAD", help="Target release ref. Defaults to HEAD.")
+    release_check_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON.")
     fresh_user_smoke_parser = subparsers.add_parser(
         "fresh-user-smoke",
         help="Verify a first-user install, project link, provider compile, and onboarding flow.",
     )
-    fresh_user_smoke_parser.add_argument("--repo-root", default=".")
-    fresh_user_smoke_parser.add_argument("--launcher")
-    fresh_user_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
+    fresh_user_smoke_parser.add_argument("--repo-root", default=".", help="Repository root to install from. Defaults to current directory.")
+    fresh_user_smoke_parser.add_argument("--launcher", help="Path to the aos launcher to install. Defaults to <repo-root>/bin/aos.")
+    fresh_user_smoke_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON.")
     release_upgrade_smoke_parser = subparsers.add_parser(
         "release-upgrade-smoke",
         help="Verify install, update, and rollback between two release refs.",
     )
-    release_upgrade_smoke_parser.add_argument("--repo-root", default=".")
-    release_upgrade_smoke_parser.add_argument("--from-ref", required=True)
-    release_upgrade_smoke_parser.add_argument("--to-ref", default="HEAD")
-    release_upgrade_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
+    release_upgrade_smoke_parser.add_argument("--repo-root", default=".", help="Repository root containing git release refs.")
+    release_upgrade_smoke_parser.add_argument("--from-ref", required=True, help="Previous release ref to install first.")
+    release_upgrade_smoke_parser.add_argument("--to-ref", default="HEAD", help="Target release ref to update to. Defaults to HEAD.")
+    release_upgrade_smoke_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON.")
     release_install_smoke_parser = subparsers.add_parser(
         "release-install-smoke",
         help="Verify a published release ref can be fetched, installed, and version-checked.",
@@ -139,7 +147,12 @@ def build_parser() -> argparse.ArgumentParser:
     release_install_smoke_parser.add_argument("--source", required=True)
     release_install_smoke_parser.add_argument("--ref", required=True)
     release_install_smoke_parser.add_argument("--expected-tag")
-    release_install_smoke_parser.add_argument("--json", action="store_true", dest="as_json")
+    release_install_smoke_parser.add_argument(
+        "--fresh-user-smoke",
+        action="store_true",
+        help="After install/version verification, run the full isolated first-user smoke on the fetched checkout.",
+    )
+    release_install_smoke_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON.")
     public_audit_parser = subparsers.add_parser(
         "public-audit",
         help="Scan the current tree and git history for public-release privacy risks.",
@@ -163,18 +176,23 @@ def build_parser() -> argparse.ArgumentParser:
         "public-release-gate",
         help="Run the canonical public release gate with audit, manifest, fresh-user, and upgrade checks.",
     )
-    public_release_gate_parser.add_argument("--repo-root", default=".")
-    public_release_gate_parser.add_argument("--launcher")
-    public_release_gate_parser.add_argument("--from-ref")
-    public_release_gate_parser.add_argument("--to-ref", default="HEAD")
-    public_release_gate_parser.add_argument("--release-install-source")
-    public_release_gate_parser.add_argument("--release-install-ref")
+    public_release_gate_parser.add_argument("--repo-root", default=".", help="Standalone/public repository root to validate.")
+    public_release_gate_parser.add_argument("--launcher", help="Path to the aos launcher to verify. Defaults to <repo-root>/bin/aos.")
+    public_release_gate_parser.add_argument("--from-ref", help="Previous release ref. If omitted, infer the latest older same-channel tag.")
+    public_release_gate_parser.add_argument("--to-ref", default="HEAD", help="Target release ref. Defaults to HEAD.")
+    public_release_gate_parser.add_argument("--release-install-source", help="Published release git source to fetch for post-tag install smoke.")
+    public_release_gate_parser.add_argument("--release-install-ref", help="Published release tag/ref to fetch. If omitted, infer from version metadata.")
+    public_release_gate_parser.add_argument(
+        "--release-install-fresh-user-smoke",
+        action="store_true",
+        help="When --release-install-source is set, also run fresh-user smoke on the fetched release checkout.",
+    )
     public_release_gate_parser.add_argument(
         "--tree-only",
         action="store_true",
         help="Development/CI only: skip git history audit and scan only the current tree.",
     )
-    public_release_gate_parser.add_argument("--json", action="store_true", dest="as_json")
+    public_release_gate_parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON.")
     link_project_parser = subparsers.add_parser(
         "link-project",
         help="Create a project Agentic OS config.",
@@ -348,6 +366,7 @@ def main(
                 source=args.source,
                 ref=args.ref,
                 expected_tag=args.expected_tag,
+                fresh_user_smoke_gate=args.fresh_user_smoke,
             )
             if args.as_json:
                 stdout.write(render_release_install_smoke_json(report))
@@ -380,6 +399,7 @@ def main(
                 include_history=not args.tree_only,
                 release_install_source=args.release_install_source,
                 release_install_ref=args.release_install_ref,
+                release_install_fresh_user_smoke=args.release_install_fresh_user_smoke,
             )
             if args.as_json:
                 stdout.write(render_public_release_gate_json(report))

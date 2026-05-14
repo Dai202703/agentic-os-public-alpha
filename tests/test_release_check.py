@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agentic_os.cli import main
-from agentic_os.release_check import release_check
+from agentic_os.release_check import release_check, render_release_check_summary
 
 
 class ReleaseCheckTests(unittest.TestCase):
@@ -194,6 +194,33 @@ class ReleaseCheckTests(unittest.TestCase):
             self.assertEqual("Run the failing compile command manually.", step.next_action)
             self.assertIn("compile_codex", step.message)
             self.assertIn("Next action:", step.message)
+
+    def test_release_check_summary_includes_first_failure_and_next_action(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_release_repo(Path(temp_dir))
+
+            def fake_run(command, **kwargs):
+                return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+            failed_step = SimpleNamespace(
+                id="memory_search",
+                message="Expected memory search result was missing.",
+                command="/tmp/aos memory search",
+                path="/tmp/demo-project",
+                stdout_tail="",
+                stderr_tail="no results",
+                next_action="Inspect fresh-user memory search output.",
+            )
+            fake_report = SimpleNamespace(ok=False, failed=[failed_step], project_id="fresh-user-demo")
+
+            with patch("agentic_os.release_check.subprocess.run", side_effect=fake_run):
+                with patch("agentic_os.release_check.fresh_user_smoke", return_value=fake_report):
+                    report = release_check(repo_root, fresh_user_smoke_gate=True)
+
+        summary = render_release_check_summary(report)
+        self.assertIn("first_failure=fresh_user_smoke", summary)
+        self.assertIn("Expected memory search result was missing", summary)
+        self.assertIn("next_action=Inspect fresh-user memory search output.", summary)
 
     def test_release_check_fails_when_distribution_check_finds_private_output(self):
         with tempfile.TemporaryDirectory() as temp_dir:

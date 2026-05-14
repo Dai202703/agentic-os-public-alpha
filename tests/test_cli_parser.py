@@ -44,6 +44,24 @@ class CliParserTests(unittest.TestCase):
         self.assertEqual(args.command, "doctor")
         self.assertEqual(args.project_root, "/tmp/project")
 
+    def test_release_commands_include_operator_help_text(self):
+        parser = build_parser()
+        subparsers_action = next(action for action in parser._actions if getattr(action, "dest", None) == "command")
+        release_check_help = _normalize_help(subparsers_action.choices["release-check"].format_help())
+        release_install_help = _normalize_help(subparsers_action.choices["release-install-smoke"].format_help())
+        public_gate_help = _normalize_help(subparsers_action.choices["public-release-gate"].format_help())
+
+        self.assertIn("Previous release ref", release_check_help)
+        self.assertIn("Run the isolated first-user", release_check_help)
+        self.assertIn("full isolated first-user smoke", release_install_help)
+        self.assertIn("--fresh-user-smoke", release_install_help)
+        self.assertIn("latest older same-channel tag", public_gate_help)
+        self.assertIn("--release-install-fresh-user-smoke", public_gate_help)
+
+
+def _normalize_help(help_text: str) -> str:
+    return " ".join(help_text.split())
+
 
 if __name__ == "__main__":
     unittest.main()

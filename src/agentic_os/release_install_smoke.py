@@ -6,7 +6,9 @@ import re
 import subprocess
 import sys
 import tempfile
-from typing import Sequence
+from typing import Any, Sequence
+
+from .fresh_user_smoke import fresh_user_smoke
 
 
 COMMAND_TIMEOUT_SECONDS = 300
@@ -23,6 +25,7 @@ class ReleaseInstallSmokeStep:
     stdout_tail: str | None = None
     stderr_tail: str | None = None
     next_action: str | None = None
+    details: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -59,6 +62,7 @@ def release_install_smoke(
     source: str | Path,
     ref: str,
     expected_tag: str | None = None,
+    fresh_user_smoke_gate: bool = False,
 ) -> ReleaseInstallSmokeReport:
     source_value = _normalize_source(source)
     normalized_ref = normalize_release_ref(ref)
@@ -184,6 +188,21 @@ def release_install_smoke(
 
         version_step, installed_version = _verify_version_step(active, expected_version, clone_root, os_home)
         steps.append(version_step)
+        if version_step.status == "FAIL":
+            return _report(
+                source_value,
+                ref,
+                normalized_ref,
+                resolved_expected_tag,
+                clone_root,
+                install_dir,
+                expected_version,
+                installed_version,
+                steps,
+            )
+
+        if fresh_user_smoke_gate:
+            steps.append(_fresh_user_smoke_step(clone_root))
 
         return _report(
             source_value,
@@ -249,6 +268,7 @@ def render_release_install_smoke_json(report: ReleaseInstallSmokeReport) -> str:
                 "stdout_tail": step.stdout_tail,
                 "stderr_tail": step.stderr_tail,
                 "next_action": step.next_action,
+                "details": step.details,
             }
             for step in report.steps
         ],
@@ -278,6 +298,84 @@ def _report(
         installed_version=installed_version,
         steps=steps,
     )
+
+
+def _fresh_user_smoke_step(clone_root: Path) -> ReleaseInstallSmokeStep:
+    report = fresh_user_smoke(clone_root)
+    details = _fresh_user_report_details(report)
+    if getattr(report, "ok"):
+        return ReleaseInstallSmokeStep(
+            id="fresh_user_smoke",
+            status="PASS",
+            message=(
+                "Fresh-user smoke passed: "
+                f"{len(getattr(report, 'passed'))} passed, "
+                f"{len(getattr(report, 'failed'))} failed."
+            ),
+            path=str(clone_root),
+            details=details,
+        )
+
+    failed_steps = list(getattr(report, "failed"))
+    first_failure = failed_steps[0] if failed_steps else None
+    failed_ids = ", ".join(str(getattr(step, "id", "unknown")) for step in failed_steps)
+    message = "Fresh-user smoke failed."
+    if failed_ids:
+        message = f"Fresh-user smoke failed at: {failed_ids}."
+    return ReleaseInstallSmokeStep(
+        id="fresh_user_smoke",
+        status="FAIL",
+        message=message,
+        path=str(clone_root),
+        next_action=(
+            str(getattr(first_failure, "next_action", ""))
+            if first_failure and getattr(first_failure, "next_action", None)
+            else "Run fresh-user-smoke against the fetched release checkout and inspect failed substeps."
+        ),
+        details=details,
+    )
+
+
+def _fresh_user_report_details(report: object) -> dict[str, Any]:
+    steps = list(getattr(report, "steps", []))
+    passed = list(getattr(report, "passed", []))
+    failed = list(getattr(report, "failed", []))
+    return {
+        "ok": bool(getattr(report, "ok", False)),
+        "repo_root": _optional_path_text(getattr(report, "repo_root", None)),
+        "install_dir": _optional_path_text(getattr(report, "install_dir", None)),
+        "os_home": _optional_path_text(getattr(report, "os_home", None)),
+        "project_root": _optional_path_text(getattr(report, "project_root", None)),
+        "project_id": getattr(report, "project_id", None),
+        "passed_count": len(passed),
+        "failed_count": len(failed),
+        "steps": [_fresh_user_step_details(step) for step in steps],
+    }
+
+
+def _fresh_user_step_details(step: object) -> dict[str, str | None]:
+    return {
+        "id": _optional_text(getattr(step, "id", None)),
+        "status": _optional_text(getattr(step, "status", None)),
+        "message": _optional_text(getattr(step, "message", None)),
+        "command": _optional_text(getattr(step, "command", None)),
+        "path": _optional_text(getattr(step, "path", None)),
+        "stdout_tail": _optional_text(getattr(step, "stdout_tail", None)),
+        "stderr_tail": _optional_text(getattr(step, "stderr_tail", None)),
+        "next_action": _optional_text(getattr(step, "next_action", None)),
+    }
+
+
+def _optional_path_text(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
+def _optional_text(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
 
 
 def _normalize_source(source: str | Path) -> str:

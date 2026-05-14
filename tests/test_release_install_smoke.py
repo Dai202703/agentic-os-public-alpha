@@ -7,6 +7,7 @@ import tempfile
 import textwrap
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from agentic_os.cli import main
@@ -149,6 +150,69 @@ class ReleaseInstallSmokeTests(unittest.TestCase):
         self.assertIn("timed out", report.failed[0].message)
         self.assertIn("retry release-install-smoke", report.failed[0].next_action)
 
+    def test_release_install_smoke_does_not_run_fresh_user_smoke_by_default(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            release_repo = self.create_release_repo(Path(temp_dir), metadata_version="1.2.3")
+
+            with patch("agentic_os.release_install_smoke.fresh_user_smoke") as fake_fresh:
+                report = release_install_smoke(
+                    source=release_repo,
+                    ref="v1.2.3-public-alpha",
+                )
+
+        self.assertTrue(report.ok, [step.message for step in report.failed])
+        fake_fresh.assert_not_called()
+        self.assertNotIn("fresh_user_smoke", [step.id for step in report.steps])
+
+    def test_release_install_smoke_can_run_fresh_user_smoke_after_install_verification(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            release_repo = self.create_release_repo(Path(temp_dir), metadata_version="1.2.3")
+            fresh_report = self.fresh_user_report(ok=True)
+
+            with patch("agentic_os.release_install_smoke.fresh_user_smoke", return_value=fresh_report) as fake_fresh:
+                report = release_install_smoke(
+                    source=release_repo,
+                    ref="v1.2.3-public-alpha",
+                    fresh_user_smoke_gate=True,
+                )
+
+        self.assertTrue(report.ok, [step.message for step in report.failed])
+        self.assertEqual("fresh_user_smoke", report.steps[-1].id)
+        self.assertEqual("PASS", report.steps[-1].status)
+        self.assertEqual(14, report.steps[-1].details["passed_count"])
+        fake_fresh.assert_called_once()
+        called_root = fake_fresh.call_args.args[0]
+        self.assertEqual("version.py", (Path(called_root) / "src/agentic_os/version.py").name)
+
+    def test_release_install_smoke_preserves_fresh_user_smoke_failure_diagnostics(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            release_repo = self.create_release_repo(Path(temp_dir), metadata_version="1.2.3")
+            failed_step = SimpleNamespace(
+                id="memory_search",
+                status="FAIL",
+                message="Expected memory search result was missing.",
+                command="aos memory search",
+                path=str(release_repo),
+                stdout_tail="",
+                stderr_tail="no results",
+                next_action="Inspect fresh-user memory search output.",
+            )
+            fresh_report = self.fresh_user_report(ok=False, failed_step=failed_step)
+
+            with patch("agentic_os.release_install_smoke.fresh_user_smoke", return_value=fresh_report):
+                report = release_install_smoke(
+                    source=release_repo,
+                    ref="v1.2.3-public-alpha",
+                    fresh_user_smoke_gate=True,
+                )
+
+        self.assertFalse(report.ok)
+        self.assertEqual("fresh_user_smoke", report.failed[0].id)
+        self.assertIn("memory_search", report.failed[0].message)
+        self.assertEqual("Inspect fresh-user memory search output.", report.failed[0].next_action)
+        self.assertEqual("memory_search", report.failed[0].details["steps"][-1]["id"])
+        self.assertEqual("no results", report.failed[0].details["steps"][-1]["stderr_tail"])
+
     def test_release_install_smoke_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             release_repo = self.create_release_repo(Path(temp_dir), metadata_version="1.2.3")
@@ -174,6 +238,32 @@ class ReleaseInstallSmokeTests(unittest.TestCase):
         self.assertEqual("refs/tags/v1.2.3-public-alpha", payload["normalized_ref"])
         self.assertEqual("v1.2.3-public-alpha", payload["expected_tag"])
         self.assertEqual("v1.2.3-public-alpha", payload["installed_version"]["release_tag"])
+
+    def test_release_install_smoke_cli_can_run_fresh_user_smoke(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            release_repo = self.create_release_repo(Path(temp_dir), metadata_version="1.2.3")
+            fresh_report = self.fresh_user_report(ok=True)
+            stdout = io.StringIO()
+
+            with patch("agentic_os.release_install_smoke.fresh_user_smoke", return_value=fresh_report):
+                code = main(
+                    [
+                        "release-install-smoke",
+                        "--source",
+                        str(release_repo),
+                        "--ref",
+                        "v1.2.3-public-alpha",
+                        "--fresh-user-smoke",
+                        "--json",
+                    ],
+                    stdout=stdout,
+                )
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(0, code)
+        self.assertTrue(payload["ok"])
+        self.assertEqual("fresh_user_smoke", payload["steps"][-1]["id"])
+        self.assertEqual(14, payload["steps"][-1]["details"]["passed_count"])
 
     def create_release_repo(
         self,
@@ -222,6 +312,48 @@ class ReleaseInstallSmokeTests(unittest.TestCase):
         self.git(release_repo, "commit", "-m", f"release {metadata_version}")
         self.git(release_repo, "tag", tag_name or f"v{metadata_version}-public-alpha")
         return release_repo
+
+    def fresh_user_report(self, *, ok: bool, failed_step: object | None = None) -> SimpleNamespace:
+        passed_steps = [
+            SimpleNamespace(
+                id=step_id,
+                status="PASS",
+                message=f"{step_id} passed.",
+                command=f"aos {step_id}",
+                path="/tmp/fresh-user-smoke",
+                stdout_tail="Fresh User Memory Smoke" if step_id == "memory_search" else "",
+                stderr_tail="",
+                next_action=None,
+            )
+            for step_id in [
+                "install_wrapper",
+                "installed_version",
+                "init_os_home",
+                "doctor_os_home",
+                "create_demo_project",
+                "link_project",
+                "compile_codex",
+                "compile_claude",
+                "compile_gemini",
+                "compile_chatgpt",
+                "fresh_user_onboarding",
+                "memory_add_session",
+                "memory_list",
+                "memory_search",
+            ]
+        ]
+        failed_steps = [failed_step] if failed_step else []
+        return SimpleNamespace(
+            ok=ok,
+            repo_root=Path("/tmp/release"),
+            install_dir=Path("/tmp/bin"),
+            os_home=Path("/tmp/os-home"),
+            project_root=Path("/tmp/project"),
+            project_id="fresh-user-demo",
+            steps=passed_steps + failed_steps,
+            passed=passed_steps,
+            failed=failed_steps,
+        )
 
     def fake_readiness_smoke_source(self) -> str:
         return textwrap.dedent(

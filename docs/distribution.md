@@ -44,6 +44,17 @@ Public package publication requires the additional public release policy in `doc
 
 ## Release Readiness Check
 
+Recommended v0.1.14 public handoff:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+scripts/readiness_smoke.py --launcher bin/aos --json
+aos public-export --repo-root . --output /tmp/agentic-os-public --json
+cd /tmp/agentic-os-public
+PYTHONPATH=src python3 -m agentic_os public-release-gate --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
+```
+
 - The test suite passes.
 - `scripts/readiness_smoke.py --launcher bin/aos --json` returns `"ok": true`.
 - `aos distribution-check --repo-root . --json` returns `"ok": true`.
@@ -51,9 +62,9 @@ Public package publication requires the additional public release policy in `doc
 - `aos release-check --repo-root . --json` returns `"ok": true`.
 - `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior for a public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.11-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.13-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-release-gate --repo-root . --json` returns `"ok": true` as the canonical public release gate.
-- After the public tag exists, `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json` returns `"ok": true`.
+- After the public tag exists, `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json` returns `"ok": true`.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
 - The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.
@@ -79,7 +90,7 @@ This is the minimum gate before handing the standalone repository to another mac
 - Fresh user smoke passes with `aos fresh-user-smoke --repo-root . --json`, including `memory add session`, filtered `memory list`, and `memory search` in the temporary OS home.
 - The opt-in first-user release gate passes with `aos release-check --repo-root . --fresh-user-smoke --json`.
 - The canonical public release gate passes with `aos public-release-gate --repo-root . --json`.
-- The post-tag public-source install smoke passes with `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.13-public-alpha --expected-tag v0.1.13-public-alpha --json`.
+- The post-tag public-source install smoke passes with `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json`.
 - A linked validation project passes `aos onboarding-check --project-root . --json`.
 - Generated provider files have no private paths, API keys, private memory references, or client-sensitive details.
 - The receiver can reproduce install, doctor, compile, memory, and rollback steps without another user's live `~/.agentic-os` contents.

@@ -12,12 +12,18 @@ if [ "${PYTHONPATH:-}" ]; then
   PYTHONPATH_VALUE="$PYTHONPATH_VALUE:$PYTHONPATH"
 fi
 
+echo "AOS install checks:"
 if [ "$SKIP_CHECKS" != "1" ]; then
-  echo "Running AOS pre-install checks..."
+  echo "  1/5 unit tests"
   env PYTHONPATH="$PYTHONPATH_VALUE" "$PYTHON_BIN" -m unittest discover -s tests -v
+  echo "  2/5 readiness smoke"
   "$ROOT_DIR/scripts/readiness_smoke.py" --launcher "$INSTALL_LAUNCHER" --json
+else
+  echo "  1/5 unit tests skipped by AOS_INSTALL_SKIP_CHECKS=1"
+  echo "  2/5 readiness smoke skipped by AOS_INSTALL_SKIP_CHECKS=1"
 fi
 
+echo "  3/5 install launcher"
 "$PYTHON_BIN" "$ROOT_DIR/scripts/manage_global_aos.py" install \
   --launcher "$INSTALL_LAUNCHER" \
   --install-dir "$INSTALL_DIR"
@@ -31,14 +37,18 @@ if [ "$SKIP_CHECKS" != "1" ]; then
     CLEAN_CHECK_HOME=1
   fi
 
+  echo "  4/5 temporary doctor"
   "$INSTALL_DIR/aos" --os-home "$CHECK_HOME" init
   "$INSTALL_DIR/aos" --os-home "$CHECK_HOME" doctor --summary
 
   if [ "$CLEAN_CHECK_HOME" = "1" ]; then
     rm -rf "$CHECK_HOME"
   fi
+else
+  echo "  4/5 temporary doctor skipped by AOS_INSTALL_SKIP_CHECKS=1"
 fi
 
+echo "  5/5 version"
 "$INSTALL_DIR/aos" version
 
 case ":$PATH:" in
@@ -49,3 +59,4 @@ case ":$PATH:" in
 esac
 
 echo "aos install complete: $INSTALL_DIR/aos"
+echo "Next: run 'aos init' if this is your first Agentic OS install."

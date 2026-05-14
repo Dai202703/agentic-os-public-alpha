@@ -47,6 +47,7 @@ def public_release_gate(
     include_history: bool = True,
     release_install_source: str | Path | None = None,
     release_install_ref: str | None = None,
+    release_install_fresh_user_smoke: bool = False,
 ) -> PublicReleaseGateReport:
     root = Path(repo_root).expanduser().resolve()
     launcher_path = Path(launcher).expanduser().resolve() if launcher else root / "bin/aos"
@@ -60,6 +61,7 @@ def public_release_gate(
                 root,
                 release_install_source,
                 release_install_ref,
+                fresh_user_smoke_gate=release_install_fresh_user_smoke,
             )
         )
     return PublicReleaseGateReport(repo_root=root, steps=steps)
@@ -310,6 +312,8 @@ def _release_install_smoke_step(
     root: Path,
     source: str | Path,
     release_ref: str | None,
+    *,
+    fresh_user_smoke_gate: bool,
 ) -> PublicReleaseGateStep:
     resolved_ref = release_ref
     ref_source = "provided" if release_ref else "missing"
@@ -330,13 +334,18 @@ def _release_install_smoke_step(
                 "ref_source": ref_source,
                 "passed_count": 0,
                 "failed_count": 1,
+                "fresh_user_smoke_gate": fresh_user_smoke_gate,
                 "steps": [],
             },
             next_action="Pass `--release-install-ref <public-release-tag>` or fix src/agentic_os/version.py.",
         )
 
     try:
-        report = release_install_smoke(source=source, ref=resolved_ref)
+        report = release_install_smoke(
+            source=source,
+            ref=resolved_ref,
+            fresh_user_smoke_gate=fresh_user_smoke_gate,
+        )
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         return PublicReleaseGateStep(
             id="release_install_smoke",
@@ -349,6 +358,7 @@ def _release_install_smoke_step(
                 "ref_source": ref_source,
                 "passed_count": 0,
                 "failed_count": 1,
+                "fresh_user_smoke_gate": fresh_user_smoke_gate,
                 "steps": [],
                 "error": str(error),
             },
@@ -367,6 +377,7 @@ def _release_install_smoke_step(
         "installed_version": report.installed_version,
         "passed_count": len(report.passed),
         "failed_count": len(report.failed),
+        "fresh_user_smoke_gate": fresh_user_smoke_gate,
         "steps": [
             {
                 "id": step.id,
@@ -377,6 +388,7 @@ def _release_install_smoke_step(
                 "stdout_tail": step.stdout_tail,
                 "stderr_tail": step.stderr_tail,
                 "next_action": step.next_action,
+                "details": getattr(step, "details", None),
             }
             for step in report.steps
         ],

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.14-public-alpha
+
+- Added an opt-in fresh-user gate to `aos release-install-smoke` so published public tags can be fetched, installed, version-checked, and then validated through the full first-user install, provider compile, onboarding, and memory workflow.
+- Added `--release-install-fresh-user-smoke` to `aos public-release-gate` for post-tag public-source validation with nested fresh-user diagnostics.
+- Improved release handoff usability with clearer CLI help text, release-check first-failure summaries, install script step markers, and updated v0.1.14 release documentation.
+
 ## v0.1.13-public-alpha
 
 - Added `aos release-install-smoke` to verify a published release ref can be fetched, installed into a temporary command path, and version-checked.

@@ -249,9 +249,11 @@ class PublicReleaseGateTests(unittest.TestCase):
         fake_install.assert_called_once_with(
             source="https://github.com/Dai202703/agentic-os-public-alpha.git",
             ref="v0.1.12-public-alpha",
+            fresh_user_smoke_gate=False,
         )
         self.assertEqual("provided", report.steps[2].details["ref_source"])
         self.assertEqual("refs/tags/v0.1.12-public-alpha", report.steps[2].details["normalized_ref"])
+        self.assertFalse(report.steps[2].details["fresh_user_smoke_gate"])
 
     def test_public_release_gate_infers_release_install_ref_from_current_metadata(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -269,8 +271,34 @@ class PublicReleaseGateTests(unittest.TestCase):
                         )
 
         self.assertTrue(report.ok)
-        fake_install.assert_called_once_with(source=".", ref="v0.1.12-public-alpha")
+        fake_install.assert_called_once_with(source=".", ref="v0.1.12-public-alpha", fresh_user_smoke_gate=False)
         self.assertEqual("inferred", report.steps[2].details["ref_source"])
+
+    def test_public_release_gate_can_run_release_install_fresh_user_smoke(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            audit_report = self.audit_report(repo_root, ok=True, history_scanned=True)
+            release_report = self.release_report(repo_root, ok=True)
+            install_report = self.release_install_report(repo_root, ok=True)
+
+            with patch("agentic_os.public_release_gate.public_audit", return_value=audit_report):
+                with patch("agentic_os.public_release_gate.release_check", return_value=release_report):
+                    with patch("agentic_os.public_release_gate.release_install_smoke", return_value=install_report) as fake_install:
+                        report = public_release_gate(
+                            repo_root,
+                            from_ref="v0.1.10-public-alpha",
+                            release_install_source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+                            release_install_ref="v0.1.12-public-alpha",
+                            release_install_fresh_user_smoke=True,
+                        )
+
+        self.assertTrue(report.ok)
+        fake_install.assert_called_once_with(
+            source="https://github.com/Dai202703/agentic-os-public-alpha.git",
+            ref="v0.1.12-public-alpha",
+            fresh_user_smoke_gate=True,
+        )
+        self.assertTrue(report.steps[2].details["fresh_user_smoke_gate"])
 
     def test_public_release_gate_preserves_release_install_smoke_failure_diagnostics(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -324,13 +352,14 @@ class PublicReleaseGateTests(unittest.TestCase):
                                 str(repo_root),
                                 "--from-ref",
                                 "v0.1.10-public-alpha",
-                                "--release-install-source",
-                                "https://github.com/Dai202703/agentic-os-public-alpha.git",
-                                "--release-install-ref",
-                                "v0.1.12-public-alpha",
-                                "--json",
-                            ],
-                            stdout=stdout,
+                            "--release-install-source",
+                            "https://github.com/Dai202703/agentic-os-public-alpha.git",
+                            "--release-install-ref",
+                            "v0.1.12-public-alpha",
+                            "--release-install-fresh-user-smoke",
+                            "--json",
+                        ],
+                        stdout=stdout,
                         )
 
         payload = json.loads(stdout.getvalue())
@@ -339,6 +368,7 @@ class PublicReleaseGateTests(unittest.TestCase):
         self.assertEqual(3, payload["passed_count"])
         self.assertEqual("release_install_smoke", payload["steps"][2]["id"])
         self.assertEqual("verify_installed_version", payload["steps"][2]["details"]["steps"][1]["id"])
+        self.assertTrue(payload["steps"][2]["details"]["fresh_user_smoke_gate"])
 
     def test_public_release_gate_cli_preserves_json_when_release_check_raises(self):
         with tempfile.TemporaryDirectory() as temp_dir:
