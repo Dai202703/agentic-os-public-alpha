@@ -38,6 +38,22 @@ That flow installs `aos`, creates your private OS home, links one folder, saves 
 
 You do not need to adopt a fixed workflow. AOS gives you a durable place to define your own categories: clients, cases, classes, books, repositories, experiments, campaigns, or anything else you repeatedly ask AI tools to understand.
 
+## Choose Your Own Categories
+
+AOS does not ship a fixed set of work categories. The `--id` you pass to `aos link-project` is your category key, and it can describe the way you actually work: book drafts, client work, research threads, class notes, legal matters, product launches, or internal experiments.
+
+Use short safe identifiers with letters, numbers, hyphens, or underscores:
+
+```bash
+aos link-project --project-root /tmp/aos-book --id book-draft --name "Book Draft" --provider chatgpt
+aos link-project --project-root /tmp/aos-class --id biology-101 --name "Biology 101" --provider gemini
+aos link-project --project-root /tmp/aos-case --id case-research --name "Case Research" --provider claude
+```
+
+Avoid spaces, slashes, private client names, and secrets in category IDs. Put sensitive details in your private local memory, not in public docs, issue reports, or shared screenshots.
+
+If you are new to command line tools, start with [Install AOS For Beginners](docs/install-for-beginners.md).
+
 ## Five Ways To Use AOS
 
 Each example below uses the same pattern: link a folder, record the important memory, then compile provider instructions before working with an AI assistant.
@@ -275,6 +291,7 @@ Do not publish:
 
 ## Documentation
 
+- [Install AOS For Beginners](docs/install-for-beginners.md)
 - [Operations](docs/operations.md)
 - [Distribution](docs/distribution.md)
 - [Public release policy](docs/public-release.md)

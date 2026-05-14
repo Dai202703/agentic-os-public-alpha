@@ -50,6 +50,12 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos init", content)
         self.assertIn("aos link-project --project-root /tmp/aos-first-project", content)
         self.assertIn("aos compile codex --project-root /tmp/aos-first-project", content)
+        self.assertIn("## Choose Your Own Categories", content)
+        self.assertIn("docs/install-for-beginners.md", content)
+        self.assertIn("AOS does not ship a fixed set of work categories", content)
+        self.assertIn("The `--id` you pass to `aos link-project` is your category key", content)
+        self.assertIn("letters, numbers, hyphens, or underscores", content)
+        self.assertIn("Avoid spaces, slashes, private client names, and secrets", content)
         self.assertIn("## Five Ways To Use AOS", content)
         self.assertIn("### Writer", content)
         self.assertIn("### Researcher", content)
@@ -102,6 +108,7 @@ class DistributionArtifactsTests(unittest.TestCase):
 
     def test_public_release_docs_and_policy_files_exist(self):
         required = [
+            "docs/install-for-beginners.md",
             "docs/public-release.md",
             "SECURITY.md",
             "CONTRIBUTING.md",
@@ -111,6 +118,23 @@ class DistributionArtifactsTests(unittest.TestCase):
 
         for relative in required:
             self.assertTrue((self.repo_root / relative).is_file(), relative)
+
+    def test_beginner_install_guide_is_public_and_actionable(self):
+        guide = self.repo_root / "docs/install-for-beginners.md"
+
+        self.assertTrue(guide.is_file())
+        content = guide.read_text(encoding="utf-8")
+        self.assertIn("# Install AOS For Beginners", content)
+        self.assertIn("No private data is uploaded", content)
+        self.assertIn("macOS, Linux, or Windows through WSL", content)
+        self.assertIn("native Windows PowerShell installer is a separate future step", content)
+        self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
+        self.assertIn("sh scripts/install.sh", content)
+        self.assertIn("aos doctor --summary", content)
+        self.assertIn("aos link-project", content)
+        self.assertIn("aos compile codex", content)
+        self.assertIn("How To Know It Worked", content)
+        self.assertIn("Common Problems", content)
 
     def test_operations_doc_documents_install_update_and_rollback(self):
         operations = self.repo_root / "docs/operations.md"

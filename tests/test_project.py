@@ -46,6 +46,32 @@ class ProjectLinkingTests(unittest.TestCase):
             self.assertEqual(config["memory"]["include_recent_sessions"], 3)
             self.assertEqual(config["memory"]["include_recent_decisions"], 5)
 
+    def test_link_project_accepts_user_defined_category_ids(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_root = Path(temp_dir)
+
+            for project_id, name in [
+                ("book-draft", "Book Draft"),
+                ("case-research", "Case Research"),
+                ("student_notes", "Student Notes"),
+            ]:
+                with self.subTest(project_id=project_id):
+                    config_path = link_project(
+                        project_root / project_id,
+                        project_id,
+                        name,
+                        "custom",
+                        "user",
+                        ["codex"],
+                    )
+
+                    config = read_project_config(config_path)
+
+                    self.assertEqual(project_id, config["id"])
+                    self.assertEqual(name, config["name"])
+                    self.assertEqual("custom", config["type"])
+                    self.assertEqual(f"outputs/{project_id}", config["outputs"]["root"])
+
     def test_read_project_config_parses_unquoted_digit_scalars_as_ints(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "project.yaml"
