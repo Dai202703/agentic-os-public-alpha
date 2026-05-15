@@ -27,14 +27,14 @@ Before a public alpha tag is published, run the strict gate from the clean publi
 
 ```bash
 aos public-audit --repo-root . --json
-aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke --from-ref v0.1.14-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke --from-ref v0.1.15-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
 ```
 
 After the tag exists, verify the published source:
 
 ```bash
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json
 ```
 
 The `--tree-only` and `--skip-release-manifest` options are development conveniences, not public release gates.

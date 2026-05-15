@@ -10,6 +10,8 @@ The core idea is simple: choose the categories that match your work, save the co
 
 This repository is prepared as a public alpha. The default design keeps private identity, project memory, client context, API keys, and generated provider outputs outside the shareable source package.
 
+Translations: [Korean](docs/readme-ko.md) | [Japanese](docs/readme-ja.md)
+
 ## AOS At A Glance
 
 ![Agentic OS flow: private local categories and memory compile into provider instruction files](docs/assets/aos-public-alpha-flow.svg)
@@ -259,7 +261,7 @@ aos onboarding-check --project-root . --json
 
 ## Release And Privacy Gates
 
-Recommended v0.1.15 release handoff:
+Recommended v0.1.16 release handoff:
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
@@ -285,14 +287,14 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.14-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
 ```
 
 After the public tag has been created and pushed, run the post-tag install smoke:
 
 ```bash
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json
 ```
 
 Use `aos public-audit --repo-root . --tree-only --json` only for clean public exports, private development, or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.

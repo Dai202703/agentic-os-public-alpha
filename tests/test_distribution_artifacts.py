@@ -81,7 +81,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertEqual(5, content.count("- Category to create:"))
         self.assertEqual(5, content.count("- Memory to save:"))
         self.assertEqual(5, content.count("- Provider output to compile:"))
-        self.assertIn("v0.1.15-public-alpha", content)
+        self.assertIn("v0.1.16-public-alpha", content)
         self.assertIn("## Standalone Install", content)
         self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
         self.assertIn("scripts/install.sh", content)
@@ -97,9 +97,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
         self.assertIn("aos memory template session --project-id demo", content)
         self.assertIn("re-run `aos compile`", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.14-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("aos public-audit --repo-root . --tree-only --json", content)
         self.assertIn("aos release-check --repo-root . --skip-release-manifest --json", content)
         self.assertIn("memory add session", content)
@@ -110,6 +110,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("SHA-256", content)
         self.assertIn("docs/demo.md", content)
         self.assertIn("docs/assets/aos-first-run-demo.svg", content)
+        self.assertIn("[Korean](docs/readme-ko.md)", content)
+        self.assertIn("[Japanese](docs/readme-ja.md)", content)
 
     def test_distribution_doc_includes_handoff_verification_gate(self):
         content = (self.repo_root / "docs/distribution.md").read_text(encoding="utf-8")
@@ -120,9 +122,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos distribution-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
-        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.14-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("release manifest checksum", content)
         self.assertIn("aos public-audit --repo-root . --json", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
@@ -139,6 +141,8 @@ class DistributionArtifactsTests(unittest.TestCase):
             "docs/assets/aos-first-run-demo.svg",
             "docs/demo.md",
             "docs/memory-workflows.md",
+            "docs/readme-ko.md",
+            "docs/readme-ja.md",
             "docs/install-for-beginners.md",
             "docs/public-release.md",
             "scripts/install.ps1",
@@ -151,6 +155,41 @@ class DistributionArtifactsTests(unittest.TestCase):
 
         for relative in required:
             self.assertTrue((self.repo_root / relative).is_file(), relative)
+
+    def test_multilingual_readmes_are_public_and_actionable(self):
+        expectations = {
+            "docs/readme-ko.md": [
+                "# Agentic OS 한국어 가이드",
+                "aos init",
+                "aos link-project",
+                "aos memory add session",
+                "aos compile codex",
+                "Codex",
+                "Claude Code",
+                "Gemini",
+                "ChatGPT",
+                "aos distribution-check --repo-root . --json",
+            ],
+            "docs/readme-ja.md": [
+                "# Agentic OS 日本語ガイド",
+                "aos init",
+                "aos link-project",
+                "aos memory add session",
+                "aos compile codex",
+                "Codex",
+                "Claude Code",
+                "Gemini",
+                "ChatGPT",
+                "aos distribution-check --repo-root . --json",
+            ],
+        }
+
+        for relative, snippets in expectations.items():
+            content = (self.repo_root / relative).read_text(encoding="utf-8")
+            self.assertNotIn("/Users/", content)
+            self.assertNotIn("sk-", content)
+            for snippet in snippets:
+                self.assertIn(snippet, content)
 
     def test_beginner_install_guide_is_public_and_actionable(self):
         guide = self.repo_root / "docs/install-for-beginners.md"
@@ -264,8 +303,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)
         self.assertIn("aos fresh-user-smoke --repo-root . --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.14-public-alpha --to-ref HEAD --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("public-release-manifest.json", content)
         self.assertIn("memory add session", content)
         self.assertIn("memory list", content)
@@ -278,8 +317,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         content = (self.repo_root / "docs/public-release.md").read_text(encoding="utf-8")
 
         self.assertIn("aos version", content)
+        self.assertIn("v0.1.16-public-alpha", content)
         self.assertIn("v0.1.15-public-alpha", content)
-        self.assertIn("v0.1.14-public-alpha", content)
         self.assertIn("version_consistency", content)
         self.assertIn("release_manifest", content)
         self.assertIn("public-release-gate", content)

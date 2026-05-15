@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.16-public-alpha
+
+- Added Korean and Japanese README guides so non-English users can understand the first-run flow, category freedom, memory workflow, provider outputs, and privacy boundaries before installing.
+- Linked multilingual docs from the main README and added artifact coverage to keep the translated onboarding path present in public exports.
+
 ## v0.1.15-public-alpha
 
 - Added native Windows install validation, clearer platform-specific install/update/rollback guidance, and public-safe visual onboarding assets for first-run workflows.
