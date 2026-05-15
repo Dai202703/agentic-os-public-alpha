@@ -114,6 +114,37 @@ timestamp: {quote_metadata_value(parsed_time.strftime('%Y-%m-%d %H:%M'))}
     return decision_path
 
 
+def render_session_memory_template(project_id: str) -> str:
+    validate_project_id(project_id)
+    return (
+        "Session memory template\n\n"
+        "Use this after meaningful work, then re-run `aos compile` when you want "
+        "new memory reflected in provider instructions.\n\n"
+        "```bash\n"
+        f"aos memory add session --project-id {project_id} \\\n"
+        '  --title "Session title" \\\n'
+        '  --summary "What changed, why it matters, and what should persist." \\\n'
+        '  --tag "handoff" \\\n'
+        '  --decision "Key decision made during the session." \\\n'
+        '  --artifact "path/or/link-to-important-output" \\\n'
+        '  --next-action "Concrete next step."\n'
+        "```\n"
+    )
+
+
+def render_decision_memory_template(project_id: str) -> str:
+    validate_project_id(project_id)
+    return (
+        "Decision memory template\n\n"
+        "Use this when a choice should survive across future AI sessions.\n\n"
+        "```bash\n"
+        f"aos memory add decision --project-id {project_id} \\\n"
+        '  --title "Decision title" \\\n'
+        '  --rationale "Context, options considered, and why this path was chosen."\n'
+        "```\n"
+    )
+
+
 def render_markdown_list(items: list[str], empty_message: str) -> str:
     normalized_items = normalize_optional_list(items)
     return "\n".join(f"- {item}" for item in normalized_items) if normalized_items else f"- {empty_message}"

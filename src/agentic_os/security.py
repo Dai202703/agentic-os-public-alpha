@@ -4,14 +4,48 @@ from pathlib import Path
 import re
 
 
-SENSITIVE_FILENAMES = {".env", ".env.local", "secrets.json", "credentials.json"}
+SENSITIVE_FILENAMES = {
+    ".env",
+    ".env.local",
+    "secrets.json",
+    "credentials.json",
+    "id_rsa",
+    "id_ed25519",
+}
 SECRET_PATTERN = re.compile(
-    r"\bsk-[A-Za-z0-9_-]{20,}\b|\b(?:OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY)\s*="
+    "|".join(
+        [
+            r"\bsk-(?:live|test)?_?[A-Za-z0-9_-]{20,}\b",
+            r"\bgithub_pat_[A-Za-z0-9_]{20,}\b",
+            r"\bghp_[A-Za-z0-9]{20,}\b",
+            r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b",
+            r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+            (
+                r"\b(?:"
+                r"OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|"
+                r"GITHUB_TOKEN|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|"
+                r"STRIPE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|SLACK_BOT_TOKEN|"
+                r"[A-Z][A-Z0-9_]*(?:_API_KEY|_AUTH_TOKEN|_BOT_TOKEN|_SECRET_KEY|_PRIVATE_KEY|_PASSWORD)|"
+                r"PRIVATE_KEY|PASSWORD"
+                r")\s*[:=]"
+            ),
+        ]
+    )
 )
 LOCAL_PATH_PATTERN = re.compile(
-    r"(?<![\w.-])(?:/Users/|/private/var/|/var/folders/|/tmp/)[^\s'\"`)]+"
+    "|".join(
+        [
+            r"(?<![\w.-])(?:/Users/|/private/var/|/var/folders/|/tmp/)[^\s'\"`)]+",
+            r"(?<![\w.-])[A-Za-z]:[\\/]+Users[\\/][^\s'\"`)]+",
+            r"(?<![\w.-])%USERPROFILE%[\\/][^\s'\"`)]+",
+            r"(?<![\w.-])\$env:USERPROFILE[\\/][^\s'\"`)]+",
+        ]
+    )
 )
-PRIVATE_MEMORY_REFERENCE_PATTERN = re.compile(r"\bmemory/project-state/[^\s'\"`)]+")
+PRIVATE_MEMORY_REFERENCE_PATTERN = re.compile(
+    r"(?<![\w.-])(?:\.agentic-os/)?memory/"
+    r"(?:project-state|sessions|decisions|index(?:\.[A-Za-z0-9]+)?)[^\s'\"`)]+"
+)
 PRIVATE_MEMORY_REFERENCE_SUFFIXES = {".md", ".markdown", ".txt"}
 
 

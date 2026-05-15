@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.15-public-alpha
+
+- Added native Windows install validation, clearer platform-specific install/update/rollback guidance, and public-safe visual onboarding assets for first-run workflows.
+- Added memory command templates and workflow guidance so users can capture session and decision memory consistently before recompiling provider instructions.
+- Strengthened public release privacy validation with broader secret/path detection, symlink export rejection, and final public security gate documentation.
+
 ## v0.1.14-public-alpha
 
 - Added an opt-in fresh-user gate to `aos release-install-smoke` so published public tags can be fetched, installed, version-checked, and then validated through the full first-user install, provider compile, onboarding, and memory workflow.

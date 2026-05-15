@@ -75,8 +75,47 @@ class DistributionCheckTests(unittest.TestCase):
             report = distribution_check(repo_root)
 
             self.assertFalse(report.ok)
-            self.assertEqual(["LOCAL_PATH_PATTERN"], [issue.code for issue in report.issues])
-            self.assertEqual([2], [issue.line for issue in report.issues])
+            self.assertEqual(
+                ["LOCAL_PATH_PATTERN", "PRIVATE_MEMORY_REFERENCE"],
+                [issue.code for issue in report.issues],
+            )
+            self.assertEqual([2, 2], [issue.line for issue in report.issues])
+
+    def test_distribution_check_flags_windows_private_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            (repo_root / "README.md").write_text(
+                "\n".join(
+                    [
+                        r"Native Windows path: C:\Users\dai\private\aos.md",
+                        "Native Windows slash path: C:/Users/dai/private/aos.md",
+                        r"Profile path: %USERPROFILE%\Documents\private.md",
+                        r"PowerShell path: $env:USERPROFILE\Documents\private.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            report = distribution_check(repo_root)
+
+            self.assertFalse(report.ok)
+            self.assertEqual(["LOCAL_PATH_PATTERN"] * 4, [issue.code for issue in report.issues])
+
+    def test_distribution_check_scans_tests_for_real_secret_like_values(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            tests_dir = repo_root / "tests"
+            tests_dir.mkdir()
+            token_name = "GITHUB" "_TOKEN"
+            (tests_dir / "test_leak.py").write_text(
+                token_name + "=ghp_" + ("A" * 36) + "\n",
+                encoding="utf-8",
+            )
+
+            report = distribution_check(repo_root)
+
+            self.assertFalse(report.ok)
+            self.assertEqual(["SECRET_PATTERN"], [issue.code for issue in report.issues])
 
     def test_distribution_check_cli_outputs_json(self):
         with tempfile.TemporaryDirectory() as temp_dir:

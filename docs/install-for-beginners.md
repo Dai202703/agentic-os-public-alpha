@@ -33,6 +33,13 @@ git --version
 python3 --version
 ```
 
+Native Windows PowerShell users can check Python with either launcher:
+
+```powershell
+py -3 --version
+python --version
+```
+
 If either command is missing, install Git or Python 3 first, then return to this guide.
 
 ## Step 1: Download AOS
@@ -110,6 +117,8 @@ Run:
 ```bash
 aos memory add session --project-id first-project --title "First memory" --summary "Use AOS to keep reusable AI context outside one vendor."
 ```
+
+Memory should contain durable context: decisions, constraints, next actions, and artifacts you want future AI sessions to remember. Private details stay local in your AOS home. After adding memory, re-run `aos compile` when you want that memory reflected in provider instructions.
 
 List it:
 
@@ -200,6 +209,14 @@ From the cloned `agentic-os-public-alpha` folder, update the installed command w
 ```bash
 python3 scripts/manage_global_aos.py update --launcher bin/aos --install-dir ~/.local/bin
 ```
+
+Windows update from the cloned folder reruns the PowerShell installer:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
+```
+
+If you installed to a custom Windows folder, pass the same `-InstallDir` value during update and rollback.
 
 Rollback:
 

@@ -22,7 +22,12 @@ from .fresh_user_smoke import (
     render_fresh_user_smoke_json,
     render_fresh_user_smoke_summary,
 )
-from .memory import add_decision_memory, add_session_memory
+from .memory import (
+    add_decision_memory,
+    add_session_memory,
+    render_decision_memory_template,
+    render_session_memory_template,
+)
 from .memory_index import list_memory, search_memory
 from .onboarding_check import (
     onboarding_check,
@@ -226,6 +231,12 @@ def build_parser() -> argparse.ArgumentParser:
     memory_search_parser = memory_subparsers.add_parser("search", help="Search memory entries.")
     memory_search_parser.add_argument("query")
     memory_search_parser.add_argument("--project-id")
+    memory_template_parser = memory_subparsers.add_parser("template", help="Print a memory capture command template.")
+    memory_template_subparsers = memory_template_parser.add_subparsers(dest="memory_template_type", required=True)
+    session_template_parser = memory_template_subparsers.add_parser("session", help="Print a session memory template.")
+    session_template_parser.add_argument("--project-id", required=True)
+    decision_template_parser = memory_template_subparsers.add_parser("decision", help="Print a decision memory template.")
+    decision_template_parser.add_argument("--project-id", required=True)
     memory_add_parser = memory_subparsers.add_parser("add", help="Add a memory entry.")
     memory_add_subparsers = memory_add_parser.add_subparsers(dest="memory_type", required=True)
     session_parser = memory_add_subparsers.add_parser("session", help="Add session memory.")
@@ -459,6 +470,14 @@ def main(
                         result.snippet,
                     ]
                 )
+            return 0
+
+        if args.command == "memory" and args.memory_command == "template" and args.memory_template_type == "session":
+            stdout.write(render_session_memory_template(args.project_id))
+            return 0
+
+        if args.command == "memory" and args.memory_command == "template" and args.memory_template_type == "decision":
+            stdout.write(render_decision_memory_template(args.project_id))
             return 0
 
         if args.command == "memory" and args.memory_command == "add" and args.memory_type == "session":

@@ -14,6 +14,8 @@ This repository is prepared as a public alpha. The default design keeps private 
 
 ![Agentic OS flow: private local categories and memory compile into provider instruction files](docs/assets/aos-public-alpha-flow.svg)
 
+![Agentic OS first-run terminal demo](docs/assets/aos-first-run-demo.svg)
+
 ## What It Does
 
 - Initializes a local Agentic OS home, normally `~/.agentic-os`
@@ -36,6 +38,12 @@ mkdir -p /tmp/aos-first-project
 aos link-project --project-root /tmp/aos-first-project --id first-project --name "First Project" --provider codex
 aos memory add session --project-id first-project --title "First memory" --summary "Use AOS to keep reusable AI context outside one vendor."
 aos compile codex --project-root /tmp/aos-first-project
+```
+
+Use `sh scripts/install.sh` on macOS / Linux / WSL. On native Windows PowerShell, replace that install line with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install.ps1
 ```
 
 That flow installs `aos`, creates your private OS home, links one folder, saves one memory, and compiles a Codex `AGENTS.md` provider instruction file.
@@ -235,10 +243,13 @@ aos onboarding-check --project-root /tmp/demo-project --json
 Record and recover memory:
 
 ```bash
+aos memory template session --project-id demo
 aos memory add session --project-id demo --title "Demo Session" --summary "Linked demo project and compiled provider instructions."
 aos memory list --project-id demo
 aos memory search "compiled provider instructions" --project-id demo
 ```
+
+Memory is for durable context that should survive across AI sessions: decisions, important constraints, next actions, and artifacts. Private details stay local in your OS home. After adding memory, re-run `aos compile` for the provider you use when you want the new memory reflected in provider instructions.
 
 For a linked current working directory:
 
@@ -248,15 +259,22 @@ aos onboarding-check --project-root . --json
 
 ## Release And Privacy Gates
 
-Recommended v0.1.14 release handoff:
+Recommended v0.1.15 release handoff:
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 scripts/readiness_smoke.py --launcher bin/aos --json
 aos public-export --repo-root . --output /tmp/agentic-os-public --json
 cd /tmp/agentic-os-public
+PYTHONPATH=src python3 -m agentic_os distribution-check --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os public-audit --repo-root . --tree-only --json
+PYTHONPATH=src python3 -m agentic_os release-check --repo-root . --json
+```
+
+Run the full-history public gate from the clean public repository after the export has been synced there, before creating the public tag:
+
+```bash
 PYTHONPATH=src python3 -m agentic_os public-release-gate --repo-root . --json
-PYTHONPATH=src python3 -m agentic_os release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
 ```
 
 Run these from a clean standalone repository before publishing or handing the package to another user:
@@ -267,12 +285,17 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.13-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.14-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
 ```
 
-Use `aos public-audit --repo-root . --tree-only --json` only for private development or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
+After the public tag has been created and pushed, run the post-tag install smoke:
+
+```bash
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json
+```
+
+Use `aos public-audit --repo-root . --tree-only --json` only for clean public exports, private development, or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
 Use `aos release-check --repo-root . --skip-release-manifest --json` only for repositories that are not clean public exports and therefore do not contain `public-release-manifest.json`.
 
 Create a clean public snapshot:
@@ -323,6 +346,8 @@ Do not publish:
 ## Documentation
 
 - [Install AOS For Beginners](docs/install-for-beginners.md)
+- [First-run demo](docs/demo.md)
+- [Memory workflows](docs/memory-workflows.md)
 - [Operations](docs/operations.md)
 - [Distribution](docs/distribution.md)
 - [Public release policy](docs/public-release.md)

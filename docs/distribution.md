@@ -44,15 +44,22 @@ Public package publication requires the additional public release policy in `doc
 
 ## Release Readiness Check
 
-Recommended v0.1.14 public handoff:
+Recommended v0.1.15 public handoff:
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 scripts/readiness_smoke.py --launcher bin/aos --json
 aos public-export --repo-root . --output /tmp/agentic-os-public --json
 cd /tmp/agentic-os-public
+PYTHONPATH=src python3 -m agentic_os distribution-check --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os public-audit --repo-root . --tree-only --json
+PYTHONPATH=src python3 -m agentic_os release-check --repo-root . --json
+```
+
+After syncing the export into the clean public repository, run the pre-tag public release gate:
+
+```bash
 PYTHONPATH=src python3 -m agentic_os public-release-gate --repo-root . --json
-PYTHONPATH=src python3 -m agentic_os release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json
 ```
 
 - The test suite passes.
@@ -62,9 +69,9 @@ PYTHONPATH=src python3 -m agentic_os release-install-smoke --source https://gith
 - `aos release-check --repo-root . --json` returns `"ok": true`.
 - `aos fresh-user-smoke --repo-root . --json` returns `"ok": true`.
 - `aos release-check --repo-root . --fresh-user-smoke --json` returns `"ok": true` when validating first-user install behavior for a public alpha.
-- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.13-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
+- `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.14-public-alpha --to-ref HEAD --json` returns `"ok": true` when validating a new public alpha against the previous public tag.
 - `aos public-release-gate --repo-root . --json` returns `"ok": true` as the canonical public release gate.
-- After the public tag exists, `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json` returns `"ok": true`.
+- After the public tag exists, `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json` returns `"ok": true`.
 - `aos public-export --repo-root . --output /tmp/agentic-os-public --json` creates a clean package.
 - The clean package includes `public-release-manifest.json` with SHA-256 checksums, and the release manifest checksum gate passes.
 - README commands work in a temporary folder.
@@ -90,7 +97,8 @@ This is the minimum gate before handing the standalone repository to another mac
 - Fresh user smoke passes with `aos fresh-user-smoke --repo-root . --json`, including `memory add session`, filtered `memory list`, and `memory search` in the temporary OS home.
 - The opt-in first-user release gate passes with `aos release-check --repo-root . --fresh-user-smoke --json`.
 - The canonical public release gate passes with `aos public-release-gate --repo-root . --json`.
-- The post-tag public-source install smoke passes with `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.14-public-alpha --expected-tag v0.1.14-public-alpha --fresh-user-smoke --json`.
+- The strict upgrade gate passes with `aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.14-public-alpha --to-ref HEAD --json`.
+- The post-tag public-source install smoke passes with `aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.15-public-alpha --expected-tag v0.1.15-public-alpha --fresh-user-smoke --json`.
 - A linked validation project passes `aos onboarding-check --project-root . --json`.
 - Generated provider files have no private paths, API keys, private memory references, or client-sensitive details.
 - The receiver can reproduce install, doctor, compile, memory, and rollback steps without another user's live `~/.agentic-os` contents.
@@ -108,14 +116,34 @@ The live `~/.agentic-os` home and any global command symlink should be created o
 
 ## Public Snapshot Step
 
-Create public snapshots from a clean export directory:
+Create public snapshots from a clean export directory. This exported snapshot has no git history, so validate it with tree-only audit and release-check before syncing it into the public repository:
 
 ```bash
 aos public-export --repo-root . --output /tmp/agentic-os-public --json
 cd /tmp/agentic-os-public
-PYTHONPATH=src python3 -m agentic_os public-audit --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os distribution-check --repo-root . --json
+PYTHONPATH=src python3 -m agentic_os public-audit --repo-root . --tree-only --json
 PYTHONPATH=src python3 -m agentic_os release-check --repo-root . --json
-PYTHONPATH=src python3 -m agentic_os public-release-gate --repo-root . --json
 ```
 
 Do not make a private working repository public unless the intended published history passes `public-audit`. The `--tree-only` and `--skip-release-manifest` modes are development CI conveniences, not public release gates.
+
+## Final Public Security Gate
+
+The final public gate must be run against the clean public repository so full git history is scanned:
+
+```bash
+aos public-audit --repo-root . --json
+aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke --from-ref v0.1.14-public-alpha --to-ref HEAD --json
+aos public-release-gate --repo-root . --json
+```
+
+This gate covers full-history privacy audit, broad secret and private-path scanning, generated provider output exclusion, release manifest checksum verification, fresh-user memory smoke, install/update/rollback upgrade smoke, and public-safe export contents. `--tree-only` and `--skip-release-manifest` are not public release gates.
+
+A clean public export can validate its current tree before repository sync with:
+
+```bash
+aos distribution-check --repo-root . --json
+aos public-audit --repo-root . --tree-only --json
+aos release-check --repo-root . --json
+```

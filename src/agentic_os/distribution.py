@@ -26,13 +26,17 @@ PRIVATE_OS_HOME_PATHS = {
     Path("providers"),
 }
 SKIPPED_DIRECTORIES = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
-CONTENT_SCAN_SKIPPED_DIRECTORIES = {"tests"}
-CONTENT_SCAN_SKIPPED_FILES = {
-    Path("src/agentic_os/distribution.py"),
-    Path("src/agentic_os/security.py"),
-}
+CONTENT_SCAN_SKIPPED_DIRECTORIES: set[str] = set()
+CONTENT_SCAN_SKIPPED_FILES: set[Path] = set()
 DISTRIBUTION_LOCAL_PATH_PATTERN = re.compile(
-    r"(?<![\w.-])(?:/Users/|/private/var/|/var/folders/)[^\s'\"`)]+"
+    "|".join(
+        [
+            r"(?<![\w.-])(?:/Users/|/private/var/|/var/folders/)[^\s'\"`)]+",
+            r"(?<![\w.-])[A-Za-z]:[\\/]+Users[\\/][^\s'\"`)]+",
+            r"(?<![\w.-])%USERPROFILE%[\\/][^\s'\"`)]+",
+            r"(?<![\w.-])\$env:USERPROFILE[\\/][^\s'\"`)]+",
+        ]
+    )
 )
 
 
@@ -140,6 +144,9 @@ def _content_issues(root: Path, paths: list[Path]) -> list[DistributionIssue]:
             continue
 
         for line_number, line in enumerate(text.splitlines(), start=1):
+            relative = _relative_or_name(root, path)
+            if is_allowed_public_scan_fixture(relative, line):
+                continue
             if SECRET_PATTERN.search(line):
                 issues.append(
                     DistributionIssue(
@@ -171,6 +178,89 @@ def _content_issues(root: Path, paths: list[Path]) -> list[DistributionIssue]:
                     )
                 )
     return issues
+
+
+def is_allowed_public_scan_fixture(relative: Path, line: str) -> bool:
+    if _is_scanner_implementation(relative):
+        scanner_fragments = [
+            "SENSITIVE_FILENAMES",
+            "SECRET_PATTERN",
+            "LOCAL_PATH_PATTERN",
+            "PRIVATE_MEMORY_REFERENCE_PATTERN",
+            "DISTRIBUTION_LOCAL_PATH_PATTERN",
+            "re.compile",
+            "OPENAI_API_KEY|",
+            "GITHUB_TOKEN|",
+            "OPENAI_API_KEY=",
+            "GITHUB_TOKEN=",
+            "AWS_ACCESS_KEY_ID=",
+            "STRIPE_SECRET_KEY=",
+            "SUPABASE_SERVICE_ROLE_KEY=",
+            "SLACK_BOT_TOKEN=",
+            "PRIVATE_KEY=",
+            "PASSWORD=",
+            "sk-test",
+            "ghp_",
+            "/Users/|",
+            "/Users/dai/",
+            "/private/var/folders",
+            "/var/folders",
+            "C:",
+            "%USERPROFILE%",
+            "$env:USERPROFILE",
+            "memory/",
+        ]
+        if any(fragment in line for fragment in scanner_fragments):
+            return True
+
+    if "tests" in relative.parts and relative.name in {
+        "test_distribution_check.py",
+        "test_doctor.py",
+        "test_public_release.py",
+        "test_security.py",
+    }:
+        fixture_fragments = [
+            "sk-test12345678901234567890",
+            "OPENAI_API_KEY=abc",
+            "OPENAI_API_KEY=outside",
+            "OPENAI_API_KEY=private",
+            "OPENAI_API_KEY=private-test-value",
+            "GITHUB_TOKEN=ghp_",
+            "AWS_ACCESS_KEY_ID=",
+            "STRIPE_SECRET_KEY=",
+            "SUPABASE_SERVICE_ROLE_KEY=",
+            "SLACK_BOT_TOKEN=",
+            "PRIVATE_KEY=",
+            "PASSWORD=",
+            "LOCAL_PATH_PATTERN =",
+            "/Users/dai/",
+            "/private/var/folders/cache.txt",
+            "/var/folders/ft/session.log",
+            "/tmp/agentic-os-debug.log",
+            r"C:\Users\dai",
+            "C:/Users/dai",
+            r"%USERPROFILE%\Documents",
+            r"$env:USERPROFILE\Documents",
+            "memory/project-state/demo.md",
+        ]
+        return any(fragment in line for fragment in fixture_fragments)
+
+    return False
+
+
+def _is_scanner_implementation(relative: Path) -> bool:
+    return relative in {
+        Path("src/agentic_os/distribution.py"),
+        Path("src/agentic_os/public_audit.py"),
+        Path("src/agentic_os/security.py"),
+    }
+
+
+def _relative_or_name(root: Path, path: Path) -> Path:
+    try:
+        return path.relative_to(root)
+    except ValueError:
+        return Path(path.name)
 
 
 def _skip_content_scan(root: Path, path: Path) -> bool:

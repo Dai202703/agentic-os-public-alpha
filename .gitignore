@@ -10,3 +10,8 @@ build/
 *.egg-info/
 .DS_Store
 
+# AOS generated/private local outputs
+.agentic-os/
+AGENTS.md
+CLAUDE.md
+GEMINI.md

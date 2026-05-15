@@ -19,8 +19,11 @@ class PublicReleaseTests(unittest.TestCase):
             report = public_audit(repo_root)
 
             self.assertFalse(report.ok)
-            self.assertEqual(["history"], [finding.source for finding in report.findings])
-            self.assertEqual(["LOCAL_PATH_PATTERN"], [finding.code for finding in report.findings])
+            self.assertEqual(["history", "history"], [finding.source for finding in report.findings])
+            self.assertEqual(
+                ["LOCAL_PATH_PATTERN", "PRIVATE_MEMORY_REFERENCE"],
+                [finding.code for finding in report.findings],
+            )
 
     def test_public_audit_tree_only_passes_when_history_has_private_data(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -55,6 +58,9 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertTrue((output / ".gitignore").is_file())
             self.assertTrue((output / "README.md").is_file())
             self.assertTrue((output / "docs/assets/aos-public-alpha-flow.svg").is_file())
+            self.assertTrue((output / "docs/assets/aos-first-run-demo.svg").is_file())
+            self.assertTrue((output / "docs/demo.md").is_file())
+            self.assertTrue((output / "docs/memory-workflows.md").is_file())
             self.assertTrue((output / "scripts/install.ps1").is_file())
             self.assertTrue((output / "scripts/windows_install_smoke.py").is_file())
             self.assertTrue((output / "src/agentic_os/cli.py").is_file())
@@ -66,6 +72,9 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertIn(".gitignore", manifest.files)
             self.assertIn("README.md", manifest.files)
             self.assertIn("docs/assets/aos-public-alpha-flow.svg", manifest.files)
+            self.assertIn("docs/assets/aos-first-run-demo.svg", manifest.files)
+            self.assertIn("docs/demo.md", manifest.files)
+            self.assertIn("docs/memory-workflows.md", manifest.files)
             self.assertIn("scripts/install.ps1", manifest.files)
             self.assertIn("scripts/windows_install_smoke.py", manifest.files)
             self.assertIn("src/agentic_os/cli.py", manifest.files)
@@ -76,6 +85,10 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertRegex(manifest_payload["sha256"]["README.md"], re.compile(r"^[0-9a-f]{64}$"))
             self.assertRegex(
                 manifest_payload["sha256"]["docs/assets/aos-public-alpha-flow.svg"],
+                re.compile(r"^[0-9a-f]{64}$"),
+            )
+            self.assertRegex(
+                manifest_payload["sha256"]["docs/assets/aos-first-run-demo.svg"],
                 re.compile(r"^[0-9a-f]{64}$"),
             )
             self.assertRegex(
@@ -109,6 +122,28 @@ class PublicReleaseTests(unittest.TestCase):
             self.assertEqual(str(output.resolve()), export_payload["output_root"])
             self.assertEqual(set(export_payload["files"]), set(export_payload["sha256"]))
 
+    def test_public_export_rejects_symlinks_inside_exported_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_source_repo(Path(temp_dir) / "source")
+            outside = Path(temp_dir) / "outside-private.md"
+            outside.write_text("Private path: /Users/dai/private.md\n", encoding="utf-8")
+            linked = repo_root / "docs/linked-private.md"
+            try:
+                linked.symlink_to(outside)
+            except (NotImplementedError, OSError) as error:
+                self.skipTest(f"Symlink creation is unsupported: {error}")
+
+            with self.assertRaisesRegex(ValueError, "Symlink is not allowed in public export"):
+                public_export(repo_root, Path(temp_dir) / "public")
+
+    def test_public_export_rejects_binary_files_inside_exported_paths(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = self.create_source_repo(Path(temp_dir) / "source")
+            (repo_root / "docs/payload.bin").write_bytes(b"\x00\xffprivate")
+
+            with self.assertRaisesRegex(ValueError, "Binary or non-UTF-8 file is not allowed in public export"):
+                public_export(repo_root, Path(temp_dir) / "public")
+
     def test_public_audit_cli_tree_only_skips_history_scan(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = self.create_repo_with_private_history(Path(temp_dir))
@@ -139,6 +174,12 @@ class PublicReleaseTests(unittest.TestCase):
             "<svg><title>AOS flow</title><desc>Public demo</desc></svg>\n",
             encoding="utf-8",
         )
+        (repo_root / "docs/assets/aos-first-run-demo.svg").write_text(
+            "<svg><title>AOS first run</title><desc>Public demo</desc></svg>\n",
+            encoding="utf-8",
+        )
+        (repo_root / "docs/demo.md").write_text("# Demo\n", encoding="utf-8")
+        (repo_root / "docs/memory-workflows.md").write_text("# Memory Workflows\n", encoding="utf-8")
         (repo_root / "docs/public-release.md").write_text("Public policy\n", encoding="utf-8")
         (repo_root / "scripts").mkdir()
         (repo_root / "scripts/readiness_smoke.py").write_text("#!/usr/bin/env python3\n", encoding="utf-8")

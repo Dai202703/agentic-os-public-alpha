@@ -8,7 +8,13 @@ from pathlib import Path
 
 from agentic_os.bootstrap import init_os
 from agentic_os.cli import main
-from agentic_os.memory import add_decision_memory, add_session_memory, update_project_state
+from agentic_os.memory import (
+    add_decision_memory,
+    add_session_memory,
+    render_decision_memory_template,
+    render_session_memory_template,
+    update_project_state,
+)
 
 
 class MemoryTests(unittest.TestCase):
@@ -258,6 +264,48 @@ Follow-up remains visible.  """
                 )
 
             self.assertFalse((outside_dir / "2026-05-10-0930-unsafe-session.md").exists())
+
+    def test_render_session_memory_template_outputs_copy_paste_command(self):
+        template = render_session_memory_template("demo")
+
+        self.assertIn("aos memory add session --project-id demo", template)
+        self.assertIn('--title "Session title"', template)
+        self.assertIn('--summary "What changed, why it matters, and what should persist."', template)
+        self.assertIn('--tag "handoff"', template)
+        self.assertIn('--decision "Key decision made during the session."', template)
+        self.assertIn('--artifact "path/or/link-to-important-output"', template)
+        self.assertIn('--next-action "Concrete next step."', template)
+        self.assertIn("re-run `aos compile`", template)
+
+    def test_render_decision_memory_template_outputs_copy_paste_command(self):
+        template = render_decision_memory_template("demo")
+
+        self.assertIn("aos memory add decision --project-id demo", template)
+        self.assertIn('--title "Decision title"', template)
+        self.assertIn('--rationale "Context, options considered, and why this path was chosen."', template)
+
+    def test_memory_template_rejects_unsafe_project_id(self):
+        with self.assertRaises(ValueError):
+            render_session_memory_template("../private")
+
+        with self.assertRaises(ValueError):
+            render_decision_memory_template("../private")
+
+    def test_memory_template_cli_outputs_session_template(self):
+        stdout = io.StringIO()
+
+        status = main(["memory", "template", "session", "--project-id", "demo"], stdout=stdout)
+
+        self.assertEqual(0, status)
+        self.assertIn("aos memory add session --project-id demo", stdout.getvalue())
+
+    def test_memory_template_cli_outputs_decision_template(self):
+        stdout = io.StringIO()
+
+        status = main(["memory", "template", "decision", "--project-id", "demo"], stdout=stdout)
+
+        self.assertEqual(0, status)
+        self.assertIn("aos memory add decision --project-id demo", stdout.getvalue())
 
     def test_add_session_memory_rejects_symlinked_session_file_outside_os_home(self):
         with tempfile.TemporaryDirectory() as temp_dir:

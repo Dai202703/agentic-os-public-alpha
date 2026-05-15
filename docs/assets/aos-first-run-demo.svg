@@ -1,0 +1,32 @@
+<svg width="1120" height="560" viewBox="0 0 1120 560" role="img">
+  <title>Agentic OS first-run demo</title>
+  <desc>A public-safe terminal style walkthrough showing install, init, link, memory, compile, and generated provider output.</desc>
+  <rect width="1120" height="560" fill="#f6f8fa"/>
+  <rect x="48" y="40" width="1024" height="480" rx="8" fill="#0f1720"/>
+  <rect x="48" y="40" width="1024" height="44" rx="8" fill="#1f2933"/>
+  <circle cx="76" cy="62" r="7" fill="#ff6b6b"/>
+  <circle cx="100" cy="62" r="7" fill="#f7c948"/>
+  <circle cx="124" cy="62" r="7" fill="#57c785"/>
+  <text x="156" y="68" fill="#d9e2ec" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">agentic-os-public-alpha first run</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+    <text x="78" y="126" fill="#7dd3fc">$ sh scripts/install.sh</text>
+    <text x="78" y="162" fill="#cbd5e1">AOS version 0.1.15</text>
+    <text x="78" y="198" fill="#7dd3fc">$ aos init</text>
+    <text x="78" y="234" fill="#cbd5e1">Initialized private OS home</text>
+    <text x="78" y="270" fill="#7dd3fc">$ aos link-project --project-root /tmp/aos-first-project --id first-project</text>
+    <text x="78" y="306" fill="#cbd5e1">Linked project config under the selected folder</text>
+    <text x="78" y="342" fill="#7dd3fc">$ aos memory add session --project-id first-project --title "First memory"</text>
+    <text x="78" y="378" fill="#cbd5e1">Saved local Markdown memory</text>
+    <text x="78" y="414" fill="#7dd3fc">$ aos compile codex --project-root /tmp/aos-first-project</text>
+    <text x="78" y="450" fill="#cbd5e1">Wrote AGENTS.md for the active AI provider</text>
+  </g>
+  <rect x="720" y="118" width="284" height="300" rx="8" fill="#ffffff"/>
+  <text x="744" y="154" fill="#111827" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17">Generated output</text>
+  <line x1="744" y1="172" x2="980" y2="172" stroke="#d0d7de" stroke-width="2"/>
+  <text x="744" y="210" fill="#2563eb" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">AGENTS.md</text>
+  <text x="744" y="244" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">CLAUDE.md</text>
+  <text x="744" y="278" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">GEMINI.md</text>
+  <text x="744" y="312" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">ChatGPT instructions</text>
+  <rect x="744" y="344" width="212" height="38" rx="6" fill="#ecfdf3"/>
+  <text x="762" y="369" fill="#166534" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">provider ready</text>
+</svg>

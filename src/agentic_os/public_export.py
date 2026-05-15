@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
+import os
 import shutil
 
 
@@ -21,6 +22,19 @@ PUBLIC_EXPORT_PATHS = [
     "pyproject.toml",
 ]
 EXCLUDED_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache"}
+DISALLOWED_PUBLIC_EXTENSIONS = {
+    ".7z",
+    ".db",
+    ".docx",
+    ".gz",
+    ".key",
+    ".p12",
+    ".pdf",
+    ".pem",
+    ".sqlite",
+    ".tar",
+    ".zip",
+}
 
 
 @dataclass(frozen=True)
@@ -46,6 +60,7 @@ def public_export(
             raise ValueError(f"Output directory is not empty: {output}")
         shutil.rmtree(output)
     output.mkdir(parents=True, exist_ok=True)
+    _preflight_public_export(source)
 
     for relative in PUBLIC_EXPORT_PATHS:
         source_path = source / relative
@@ -90,6 +105,63 @@ def _regular_files(root: Path) -> list[str]:
         for path in root.rglob("*")
         if path.is_file() and path.name != "public-release-manifest.json"
     )
+
+
+def _preflight_public_export(source: Path) -> None:
+    for relative in PUBLIC_EXPORT_PATHS:
+        source_path = source / relative
+        if not source_path.exists() and not source_path.is_symlink():
+            continue
+        _reject_unsafe_export_path(source, source_path)
+
+
+def _reject_unsafe_export_path(source: Path, path: Path) -> None:
+    if path.is_symlink():
+        raise ValueError(f"Symlink is not allowed in public export: {_display_relative(source, path)}")
+    if path.is_file():
+        _reject_unsafe_file_content(source, path)
+        return
+    if not path.is_dir():
+        return
+
+    for current_root, dirnames, filenames in os.walk(path):
+        current_path = Path(current_root)
+        dirnames[:] = [
+            dirname
+            for dirname in dirnames
+            if dirname not in EXCLUDED_NAMES
+        ]
+        for dirname in list(dirnames):
+            child = current_path / dirname
+            if child.is_symlink():
+                raise ValueError(f"Symlink is not allowed in public export: {_display_relative(source, child)}")
+        for filename in filenames:
+            child = current_path / filename
+            if child.is_symlink():
+                raise ValueError(f"Symlink is not allowed in public export: {_display_relative(source, child)}")
+            if child.is_file():
+                _reject_unsafe_file_content(source, child)
+
+
+def _reject_unsafe_file_content(source: Path, path: Path) -> None:
+    if path.suffix.lower() in DISALLOWED_PUBLIC_EXTENSIONS:
+        raise ValueError(f"Risky file type is not allowed in public export: {_display_relative(source, path)}")
+    content = path.read_bytes()
+    if b"\x00" in content:
+        raise ValueError(f"Binary or non-UTF-8 file is not allowed in public export: {_display_relative(source, path)}")
+    try:
+        content.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(
+            f"Binary or non-UTF-8 file is not allowed in public export: {_display_relative(source, path)}"
+        ) from error
+
+
+def _display_relative(source: Path, path: Path) -> str:
+    try:
+        return path.relative_to(source).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _file_checksums(root: Path, files: list[str]) -> dict[str, str]:

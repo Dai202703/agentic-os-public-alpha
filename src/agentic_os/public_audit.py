@@ -8,6 +8,7 @@ from .distribution import (
     CONTENT_SCAN_SKIPPED_FILES,
     DISTRIBUTION_LOCAL_PATH_PATTERN,
     distribution_check,
+    is_allowed_public_scan_fixture,
 )
 from .security import (
     PRIVATE_MEMORY_REFERENCE_PATTERN,
@@ -119,6 +120,8 @@ def _history_findings(root: Path) -> tuple[list[PublicAuditFinding], bool]:
             except UnicodeDecodeError:
                 continue
             for line_number, line in enumerate(text.splitlines(), start=1):
+                if is_allowed_public_scan_fixture(relative_path, line):
+                    continue
                 if SECRET_PATTERN.search(line):
                     findings.append(
                         PublicAuditFinding(

@@ -58,6 +58,15 @@ class CliParserTests(unittest.TestCase):
         self.assertIn("latest older same-channel tag", public_gate_help)
         self.assertIn("--release-install-fresh-user-smoke", public_gate_help)
 
+    def test_memory_template_command_is_available(self):
+        parser = build_parser()
+        args = parser.parse_args(["memory", "template", "session", "--project-id", "demo"])
+
+        self.assertEqual(args.command, "memory")
+        self.assertEqual(args.memory_command, "template")
+        self.assertEqual(args.memory_template_type, "session")
+        self.assertEqual(args.project_id, "demo")
+
 
 def _normalize_help(help_text: str) -> str:
     return " ".join(help_text.split())

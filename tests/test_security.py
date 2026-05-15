@@ -19,6 +19,28 @@ class SecurityScanTests(unittest.TestCase):
             self.assertEqual(["SECRET_PATTERN", "SECRET_PATTERN"], [finding.code for finding in findings])
             self.assertTrue(all(finding.path == str(path) for finding in findings))
 
+    def test_scan_private_data_reports_common_public_leak_tokens(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "notes.md"
+            path.write_text(
+                "\n".join(
+                    [
+                        "GITHUB_TOKEN=ghp_" + ("A" * 36),
+                        "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE",
+                        "STRIPE_SECRET_KEY=sk_live_" + ("B" * 24),
+                        "SUPABASE_SERVICE_ROLE_KEY=service-role-value",
+                        "SLACK_BOT_TOKEN=xoxb-" + ("1" * 24),
+                        "PRIVATE_KEY=-----BEGIN PRIVATE KEY-----",
+                        "PASSWORD=not-for-public",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            findings = scan_private_data([path])
+
+            self.assertEqual(["SECRET_PATTERN"] * 7, [finding.code for finding in findings])
+
     def test_scan_private_data_reports_local_path_patterns_with_line_numbers(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / "AGENTS.md"
@@ -48,18 +70,46 @@ class SecurityScanTests(unittest.TestCase):
             )
             self.assertEqual([2, 3, 4, 5], [finding.line for finding in findings])
 
-    def test_scan_private_data_reports_private_memory_references_with_line_numbers(self):
+    def test_scan_private_data_reports_windows_local_paths(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = Path(temp_dir) / "CLAUDE.md"
+            path = Path(temp_dir) / "README.md"
             path.write_text(
-                "Generated instructions\nSee memory/project-state/demo.md for private state.\n",
+                "\n".join(
+                    [
+                        r"Windows path: C:\Users\dai\private\aos.md",
+                        "Windows slash path: C:/Users/dai/private/aos.md",
+                        r"Profile path: %USERPROFILE%\Documents\private.md",
+                        r"PowerShell path: $env:USERPROFILE\Documents\private.md",
+                    ]
+                ),
                 encoding="utf-8",
             )
 
             findings = scan_private_data([path])
 
-            self.assertEqual(["PRIVATE_MEMORY_REFERENCE"], [finding.code for finding in findings])
-            self.assertEqual([2], [finding.line for finding in findings])
+            self.assertEqual(["LOCAL_PATH_PATTERN"] * 4, [finding.code for finding in findings])
+
+    def test_scan_private_data_reports_private_memory_references_with_line_numbers(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "CLAUDE.md"
+            path.write_text(
+                "\n".join(
+                    [
+                        "Generated instructions",
+                        "See memory/project-state/demo.md for private state.",
+                        "Session: memory/sessions/private.md",
+                        "Decision: memory/decisions/private.md",
+                        "Index: memory/index.json",
+                        "Project-local: .agentic-os/memory/sessions/private.md",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            findings = scan_private_data([path])
+
+            self.assertEqual(["PRIVATE_MEMORY_REFERENCE"] * 5, [finding.code for finding in findings])
+            self.assertEqual([2, 3, 4, 5, 6], [finding.line for finding in findings])
 
     def test_scan_private_data_reports_sensitive_filenames(self):
         with tempfile.TemporaryDirectory() as temp_dir:
