@@ -119,8 +119,8 @@ class InstallationManagerTests(unittest.TestCase):
             active = install_dir / "aos"
             self.assertTrue(active.is_symlink())
             self.assertEqual(self.launcher.resolve(), active.resolve())
-            self.assertIn("AOS version 0.1.16", install.stdout)
-            self.assertIn("Release tag: v0.1.16-public-alpha", install.stdout)
+            self.assertIn("AOS version 0.1.17", install.stdout)
+            self.assertIn("Release tag: v0.1.17-public-alpha", install.stdout)
             self.assertIn("1/5 unit tests skipped by AOS_INSTALL_SKIP_CHECKS=1", install.stdout)
             self.assertIn("2/5 readiness smoke skipped by AOS_INSTALL_SKIP_CHECKS=1", install.stdout)
             self.assertIn("3/5 install launcher", install.stdout)

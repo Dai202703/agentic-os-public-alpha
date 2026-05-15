@@ -1,0 +1,62 @@
+name: AOS bug report
+description: Report a reproducible Agentic OS public alpha problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include API keys, private memory, client names, private project paths, or generated provider outputs.
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      description: Example: macOS 15, Ubuntu 24.04, Windows 11 PowerShell, or WSL.
+    validations:
+      required: true
+  - type: input
+    id: install-method
+    attributes:
+      label: Install method
+      description: Example: sh scripts/install.sh, scripts/install.ps1, or custom AOS_INSTALL_DIR.
+    validations:
+      required: true
+  - type: textarea
+    id: aos-version
+    attributes:
+      label: aos version
+      description: Paste the output of `aos version`.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: aos doctor --summary
+      description: Paste the output of `aos doctor --summary`.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: failed-command
+    attributes:
+      label: First failed command
+      description: Paste the command and output, with private paths and secrets removed.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Include whether this blocks install, memory, provider compile, update, or rollback.
+    validations:
+      required: false

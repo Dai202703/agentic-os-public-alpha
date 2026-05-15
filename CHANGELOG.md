@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.17-public-alpha
+
+- Added public alpha user validation, troubleshooting, role tutorial, distribution channel, and onboarding package docs to move the project from maintainer-proven to first-user-proven.
+- Added a GitHub bug report template that asks for operating system, install method, `aos version`, `aos doctor --summary`, and the first failed command while warning users not to paste private context.
+- Updated release handoff references for the v0.1.17 public alpha line with v0.1.16 as the direct upgrade source.
+
 ## v0.1.16-public-alpha
 
 - Added Korean and Japanese README guides so non-English users can understand the first-run flow, category freedom, memory workflow, provider outputs, and privacy boundaries before installing.

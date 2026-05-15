@@ -81,7 +81,7 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertEqual(5, content.count("- Category to create:"))
         self.assertEqual(5, content.count("- Memory to save:"))
         self.assertEqual(5, content.count("- Provider output to compile:"))
-        self.assertIn("v0.1.16-public-alpha", content)
+        self.assertIn("v0.1.17-public-alpha", content)
         self.assertIn("## Standalone Install", content)
         self.assertIn("git clone https://github.com/Dai202703/agentic-os-public-alpha.git", content)
         self.assertIn("scripts/install.sh", content)
@@ -97,9 +97,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
         self.assertIn("aos memory template session --project-id demo", content)
         self.assertIn("re-run `aos compile`", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.16-public-alpha --to-ref HEAD --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("aos public-audit --repo-root . --tree-only --json", content)
         self.assertIn("aos release-check --repo-root . --skip-release-manifest --json", content)
         self.assertIn("memory add session", content)
@@ -112,6 +112,11 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("docs/assets/aos-first-run-demo.svg", content)
         self.assertIn("[Korean](docs/readme-ko.md)", content)
         self.assertIn("[Japanese](docs/readme-ja.md)", content)
+        self.assertIn("[User validation](docs/user-validation.md)", content)
+        self.assertIn("[Troubleshooting](docs/troubleshooting.md)", content)
+        self.assertIn("[Role tutorials](docs/role-tutorials.md)", content)
+        self.assertIn("[Distribution channels](docs/distribution-channels.md)", content)
+        self.assertIn("[Onboarding package](docs/onboarding-package.md)", content)
 
     def test_distribution_doc_includes_handoff_verification_gate(self):
         content = (self.repo_root / "docs/distribution.md").read_text(encoding="utf-8")
@@ -122,9 +127,9 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos distribution-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --fresh-user-smoke --json", content)
-        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.16-public-alpha --to-ref HEAD --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("release manifest checksum", content)
         self.assertIn("aos public-audit --repo-root . --json", content)
         self.assertIn("aos onboarding-check --project-root . --json", content)
@@ -143,8 +148,15 @@ class DistributionArtifactsTests(unittest.TestCase):
             "docs/memory-workflows.md",
             "docs/readme-ko.md",
             "docs/readme-ja.md",
+            "docs/user-validation.md",
+            "docs/troubleshooting.md",
+            "docs/role-tutorials.md",
+            "docs/distribution-channels.md",
+            "docs/onboarding-package.md",
             "docs/install-for-beginners.md",
             "docs/public-release.md",
+            ".github/ISSUE_TEMPLATE/bug_report.yml",
+            ".github/ISSUE_TEMPLATE/config.yml",
             "scripts/install.ps1",
             "scripts/windows_install_smoke.py",
             "SECURITY.md",
@@ -303,8 +315,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("scripts/readiness_smoke.py --launcher bin/aos --json", content)
         self.assertIn("aos fresh-user-smoke --repo-root . --json", content)
         self.assertIn("aos public-release-gate --repo-root . --json", content)
-        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json", content)
-        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json", content)
+        self.assertIn("aos release-upgrade-smoke --repo-root . --from-ref v0.1.16-public-alpha --to-ref HEAD --json", content)
+        self.assertIn("aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json", content)
         self.assertIn("public-release-manifest.json", content)
         self.assertIn("memory add session", content)
         self.assertIn("memory list", content)
@@ -317,8 +329,8 @@ class DistributionArtifactsTests(unittest.TestCase):
         content = (self.repo_root / "docs/public-release.md").read_text(encoding="utf-8")
 
         self.assertIn("aos version", content)
+        self.assertIn("v0.1.17-public-alpha", content)
         self.assertIn("v0.1.16-public-alpha", content)
-        self.assertIn("v0.1.15-public-alpha", content)
         self.assertIn("version_consistency", content)
         self.assertIn("release_manifest", content)
         self.assertIn("public-release-gate", content)
@@ -369,3 +381,70 @@ class DistributionArtifactsTests(unittest.TestCase):
         self.assertIn("aos public-audit --repo-root . --json", content)
         self.assertIn("aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke", content)
         self.assertIn("not public release gates", content)
+
+    def test_v0_1_17_public_hardening_docs_cover_next_steps(self):
+        expectations = {
+            "docs/user-validation.md": [
+                "# Public Alpha User Validation",
+                "macOS",
+                "Windows PowerShell",
+                "Linux or WSL",
+                "non-developer",
+                "developer",
+                "5 minutes",
+                "aos doctor --summary",
+                "aos onboarding-check --project-root",
+            ],
+            "docs/troubleshooting.md": [
+                "# Troubleshooting",
+                "PATH",
+                "Python",
+                "PowerShell",
+                "ExecutionPolicy",
+                "Permission denied",
+                "aos version",
+                "aos doctor --summary",
+            ],
+            "docs/role-tutorials.md": [
+                "# Role Tutorials",
+                "Writer",
+                "Researcher",
+                "Student",
+                "Lawyer",
+                "Developer",
+                "aos memory add session",
+                "aos compile",
+            ],
+            "docs/distribution-channels.md": [
+                "# Distribution Channels",
+                "GitHub source install",
+                "pipx",
+                "PyPI",
+                "Homebrew",
+                "winget",
+                "v0.1.17",
+            ],
+            "docs/onboarding-package.md": [
+                "# Onboarding Package",
+                "10-minute",
+                "private context",
+                "team",
+                "public users",
+                "memory",
+                "provider outputs",
+            ],
+            ".github/ISSUE_TEMPLATE/bug_report.yml": [
+                "AOS bug report",
+                "Operating system",
+                "Install method",
+                "aos version",
+                "aos doctor --summary",
+            ],
+        }
+
+        for relative, snippets in expectations.items():
+            content = (self.repo_root / relative).read_text(encoding="utf-8")
+            self.assertNotIn("/Users/", content)
+            self.assertNotIn("sk-", content)
+            for snippet in snippets:
+                self.assertIn(snippet, content)

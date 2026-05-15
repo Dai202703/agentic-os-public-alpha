@@ -66,7 +66,7 @@ aos link-project --project-root /tmp/aos-case --id case-research --name "Case Re
 
 Avoid spaces, slashes, private client names, and secrets in category IDs. Put sensitive details in your private local memory, not in public docs, issue reports, or shared screenshots.
 
-If you are new to command line tools, start with [Install AOS For Beginners](docs/install-for-beginners.md).
+If you are new to command line tools, start with [Install AOS For Beginners](docs/install-for-beginners.md). If something fails, use [Troubleshooting](docs/troubleshooting.md) before opening a public issue.
 
 ## Five Ways To Use AOS
 
@@ -261,7 +261,7 @@ aos onboarding-check --project-root . --json
 
 ## Release And Privacy Gates
 
-Recommended v0.1.16 release handoff:
+Recommended v0.1.17 release handoff:
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
@@ -287,14 +287,14 @@ aos public-audit --repo-root . --json
 aos release-check --repo-root . --json
 aos fresh-user-smoke --repo-root . --json
 aos release-check --repo-root . --fresh-user-smoke --json
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.16-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
 ```
 
 After the public tag has been created and pushed, run the post-tag install smoke:
 
 ```bash
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json
 ```
 
 Use `aos public-audit --repo-root . --tree-only --json` only for clean public exports, private development, or standalone CI repositories whose historical commits are not intended for publication. Public release repositories must run the default full-history audit.
@@ -349,9 +349,14 @@ Do not publish:
 
 - [Install AOS For Beginners](docs/install-for-beginners.md)
 - [First-run demo](docs/demo.md)
+- [User validation](docs/user-validation.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Role tutorials](docs/role-tutorials.md)
 - [Memory workflows](docs/memory-workflows.md)
 - [Operations](docs/operations.md)
 - [Distribution](docs/distribution.md)
+- [Distribution channels](docs/distribution-channels.md)
+- [Onboarding package](docs/onboarding-package.md)
 - [Public release policy](docs/public-release.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)

@@ -153,13 +153,13 @@ On macOS, Linux, and WSL, if there was no previous command, rollback removes the
 Before publishing a public alpha after the first release, verify update and rollback across release refs:
 
 ```bash
-aos release-upgrade-smoke --repo-root . --from-ref v0.1.15-public-alpha --to-ref HEAD --json
+aos release-upgrade-smoke --repo-root . --from-ref v0.1.16-public-alpha --to-ref HEAD --json
 ```
 
 For a stricter release gate, run the integrated opt-in check:
 
 ```bash
-aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.15-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --upgrade-smoke --from-ref v0.1.16-public-alpha --to-ref HEAD --json
 ```
 
 The smoke check clones both refs into a temporary workspace, installs the previous launcher into a temporary `aos` command path, updates to the current launcher, rolls back to the previous launcher, and verifies `aos version --json` after each state transition. It does not touch the live global command or live AOS home.
@@ -179,7 +179,7 @@ This runs full-history `public-audit` and strict `release-check` with release ma
 After the public tag exists, verify that the published source can be fetched and installed independently:
 
 ```bash
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json
 ```
 
 This smoke fetches the requested tag into a temporary checkout, runs `scripts/install.sh` with temporary install and OS-home paths, verifies the installed `aos` symlink points to the fetched release, and compares `aos version --json` to the release metadata. With `--fresh-user-smoke`, it then proves first-user install, provider compile, onboarding, and memory recovery against the fetched checkout. It does not touch the live global command or live `~/.agentic-os` home.
@@ -244,12 +244,12 @@ Before publishing, run the full public release gate from the clean public reposi
 
 ```bash
 aos public-audit --repo-root . --json
-aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke --from-ref v0.1.15-public-alpha --to-ref HEAD --json
+aos release-check --repo-root . --fresh-user-smoke --upgrade-smoke --from-ref v0.1.16-public-alpha --to-ref HEAD --json
 aos public-release-gate --repo-root . --json
 ```
 
-After the tag exists, run the post-tag install smoke:
+After tagging `v0.1.17-public-alpha`, run the post-tag install smoke:
 
 ```bash
-aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.16-public-alpha --expected-tag v0.1.16-public-alpha --fresh-user-smoke --json
+aos release-install-smoke --source https://github.com/Dai202703/agentic-os-public-alpha.git --ref v0.1.17-public-alpha --expected-tag v0.1.17-public-alpha --fresh-user-smoke --json
 ```

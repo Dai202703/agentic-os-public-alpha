@@ -10,7 +10,7 @@
   <text x="156" y="68" fill="#d9e2ec" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="15">agentic-os-public-alpha first run</text>
   <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
     <text x="78" y="126" fill="#7dd3fc">$ sh scripts/install.sh</text>
-    <text x="78" y="162" fill="#cbd5e1">AOS version 0.1.16</text>
+    <text x="78" y="162" fill="#cbd5e1">AOS version 0.1.17</text>
     <text x="78" y="198" fill="#7dd3fc">$ aos init</text>
     <text x="78" y="234" fill="#cbd5e1">Initialized private OS home</text>
     <text x="78" y="270" fill="#7dd3fc">$ aos link-project --project-root /tmp/aos-first-project --id first-project</text>
